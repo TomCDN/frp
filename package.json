@@ -1,0 +1,31 @@
+{
+  "name": "fey",
+  "private": true,
+  "version": "1.0.0",
+  "description": "FEY - Event Filming Crew Management System",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c magenta,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm run dev --workspace @fey/server",
+    "dev:client": "npm run dev --workspace @fey/client",
+    "build": "npm run build --workspace @fey/server && npm run build --workspace @fey/client",
+    "start": "npm run start --workspace @fey/server",
+    "typecheck": "npm run typecheck --workspace @fey/server && npm run typecheck --workspace @fey/client",
+    "seed": "npm run seed --workspace @fey/server",
+    "reset": "npm run reset --workspace @fey/server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "esbuild@0.25.12": true
+  }
+}
