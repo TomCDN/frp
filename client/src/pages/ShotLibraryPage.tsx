@@ -202,7 +202,7 @@ export function ShotLibraryPage() {
                 <div
                   className={clsx(
                     'grid place-items-center w-full h-20 rounded-lg bg-base-900 border border-base-700 mb-3',
-                    'text-accent-300',
+                    'text-accent-700',
                   )}
                 >
                   <ShotIcon icon={shot.icon} className="w-24 h-16" />
@@ -216,7 +216,7 @@ export function ShotLibraryPage() {
                     await shots.reload();
                   }}
                 >
-                  <Trash2 size={13} className="text-live-400" />
+                  <Trash2 size={13} className="text-live-500" />
                 </Button>
               </div>
               <h3 className="font-semibold text-sm">{shot.name}</h3>
@@ -285,7 +285,7 @@ export function ShotLibraryPage() {
                   className={clsx(
                     'grid place-items-center aspect-square rounded-md border transition-colors',
                     form.icon === icon
-                      ? 'border-accent-400 bg-accent-500/15 text-accent-300'
+                      ? 'border-accent-400 bg-accent-500/15 text-accent-700'
                       : 'border-base-700 bg-base-900 text-base-400 hover:border-base-600',
                   )}
                 >

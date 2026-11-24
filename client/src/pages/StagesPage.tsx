@@ -87,7 +87,7 @@ export function StagesPage() {
                 <div className="min-w-0">
                   <Link
                     to={`/stages/${stage.id}`}
-                    className="font-semibold hover:text-accent-300 truncate block"
+                    className="font-semibold hover:text-accent-700 truncate block"
                   >
                     {stage.name}
                   </Link>
@@ -140,7 +140,7 @@ export function StagesPage() {
                   <Pencil size={14} />
                 </Button>
                 <Button size="sm" variant="ghost" title="Verwijder" onClick={() => setDeleting(stage.id)}>
-                  <Trash2 size={14} className="text-live-400" />
+                  <Trash2 size={14} className="text-live-500" />
                 </Button>
               </div>
             </Panel>

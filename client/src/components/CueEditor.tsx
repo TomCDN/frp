@@ -11,15 +11,18 @@ import {
   StickyNote,
   Play,
   Image as ImageIcon,
-  ChevronDown,
+  Table2,
+  RotateCcw,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { api } from '../lib/api';
 import { useAsync } from '../hooks/useApi';
-import { formatDuration, formatTimecode, STANDARD_SHOTS } from '../lib/utils';
+import { formatDuration, formatTimecode, MOVEMENTS } from '../lib/utils';
+import { shotLabel } from '../lib/shotCodes';
 import { actorElements, buildCuePositions } from '../lib/stageGeometry';
 import { useElementSize } from '../hooks/useElementSize';
 import { Badge, Button, EmptyState, Field, Loading, Modal, Panel } from './ui';
+import { ShotPicker, SubjectPicker } from './shotPicker';
 import { StageCanvas } from './StageCanvas';
 import type { Camera as CameraModel, CrewMember, Cue, Scene, Stage, StageElement } from '../types';
 
@@ -215,7 +218,7 @@ export function CueEditor({
                         void deleteCue(cue);
                       }}
                     >
-                      <Trash2 size={13} className="text-live-400" />
+                      <Trash2 size={13} className="text-live-500" />
                     </Button>
                   </span>
                 </li>
@@ -278,9 +281,7 @@ function CueDetail({
 }: CueDetailProps) {
   const [draft, setDraft] = useState<Cue>(cue);
   const [saving, setSaving] = useState(false);
-  const [placementMode, setPlacementMode] = useState(false);
   const [placementOpen, setPlacementOpen] = useState(false);
-  const [shotPicker, setShotPicker] = useState<string | null>(null);
   const [referenceOpen, setReferenceOpen] = useState(false);
   const timer = useRef<number | null>(null);
 
@@ -330,6 +331,7 @@ function CueDetail({
 
   const scene = scenes.find((s) => s.id === draft.sceneId) ?? null;
   const actors = useMemo(() => actorElements(stage), [stage]);
+  const shotTemplates = useAsync(() => api.shotTemplates());
   const positions = useMemo(
     () => buildCuePositions(stage, draft.placements),
     [stage, draft.placements],
@@ -385,13 +387,38 @@ function CueDetail({
     return map;
   }, [crew]);
 
+  /** The cameras that have an assignment in this cue, for the overview table. */
+  const assignedCameras = useMemo(
+    () =>
+      cameras
+        .map((camera) => ({
+          camera,
+          assignment: draft.shots[camera.id],
+          operatorName: showCrewByCamera.get(camera.id),
+        }))
+        .filter((entry) => entry.assignment),
+    [cameras, draft.shots, showCrewByCamera],
+  );
+
+  /** The people and groups on the stage, as chips to follow with a camera. */
+  const actorNames = useMemo(
+    () => actors.map((actor) => actor.name).filter(Boolean),
+    [actors],
+  );
+
+  /** Shot names from the shot library, so custom shots can be picked too. */
+  const shotTemplateNames = useMemo(() => {
+    const templates = shotTemplates.data ?? [];
+    return templates.map((template) => template.name).filter(Boolean);
+  }, [shotTemplates.data]);
+
   return (
     <div className="space-y-5">
       {/* Header */}
       <Panel bodyClassName="p-4">
         <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="grid place-items-center w-11 h-11 rounded-lg bg-accent-500/15 text-accent-300 font-bold text-lg tabular shrink-0">
+            <span className="grid place-items-center w-11 h-11 rounded-lg bg-accent-500/15 text-accent-700 font-bold text-lg tabular shrink-0">
               {draft.number}
             </span>
             <div className="min-w-0">
@@ -419,7 +446,7 @@ function CueDetail({
                 {saving ? (
                   <span className="text-[11px] text-base-500">Opslaan...</span>
                 ) : (
-                  <span className="text-[11px] text-go-400">Opgeslagen</span>
+                  <span className="text-[11px] text-go-700">Opgeslagen</span>
                 )}
               </div>
             </div>
@@ -504,17 +531,9 @@ function CueDetail({
           }
           actions={
             <div className="flex items-center gap-1.5">
-              <Button
-                size="sm"
-                variant={placementMode ? 'primary' : 'secondary'}
-                onClick={() => setPlacementMode((mode) => !mode)}
-                title="Sleep personen en groepen om hun positie in deze cue te bepalen"
-              >
-                <Users size={13} />
-                {placementMode ? 'Klaar met plaatsen' : 'Posities'}
-              </Button>
               {draft.placements.length ? (
-                <Button size="sm" variant="ghost" onClick={resetPlacements} title="Herstel">
+                <Button size="sm" variant="ghost" onClick={resetPlacements} title="Terug naar de basisposities">
+                  <RotateCcw size={13} />
                   Herstel
                 </Button>
               ) : null}
@@ -527,17 +546,15 @@ function CueDetail({
               <CueStageCanvas
                 stage={stage}
                 elements={stageElements}
-                editable={placementMode}
+                editable
                 onChange={(id, patch) => {
-                  if (!placementMode) return;
                   updatePlacement(id, patch.x ?? 0, patch.y ?? 0);
                 }}
               />
               <div className="px-2 py-2 flex items-center justify-between gap-2 text-[11px] text-base-500">
                 <span>
-                  {placementMode
-                    ? 'Sleep de personen en groepen naar de juiste plek.'
-                    : `${stage.name} · ${stage.widthCm}×${stage.heightCm} cm`}
+                  Sleep alles om de stand van deze cue te bepalen. Wie staat waar, en waar moet
+                  de camera filmen.
                 </span>
                 {draft.placements.length ? (
                   <Badge tone="accent">{draft.placements.length} aangepaste posities</Badge>
@@ -560,7 +577,7 @@ function CueDetail({
               <Camera size={13} /> Camera-instructies
             </span>
           }
-          bodyClassName="p-3 space-y-2"
+          bodyClassName="p-3 space-y-3"
         >
           {cameras.length === 0 ? (
             <EmptyState
@@ -569,152 +586,184 @@ function CueDetail({
               description="Voeg camera's toe via de crew-pagina."
             />
           ) : (
-            cameras.map((camera) => {
-              const assignment = draft.shots[camera.id];
-              const operatorName = showCrewByCamera.get(camera.id);
-              const isOpen = shotPicker === camera.id;
-              return (
-                <div
-                  key={camera.id}
-                  className={clsx(
-                    'rounded-lg border p-3 transition-colors',
-                    assignment ? 'bg-base-800 border-base-600' : 'bg-base-850 border-base-700',
-                  )}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span
-                      className="grid place-items-center w-7 h-7 rounded-md text-xs font-bold shrink-0"
-                      style={{ backgroundColor: `${camera.color}22`, color: camera.color }}
-                    >
-                      {camera.number}
+            <>
+              {/* Overview: what every camera is doing in this cue. */}
+              {assignedCameras.length ? (
+                <div className="rounded-lg border border-base-700 overflow-hidden">
+                  <div className="flex items-center gap-2 px-3 py-2 bg-base-850 border-b border-base-700">
+                    <Table2 size={12} className="text-base-400" />
+                    <span className="text-[11px] uppercase tracking-wider text-base-400">
+                      Overzicht
                     </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">
-                        {camera.name}
-                        {operatorName ? (
-                          <span className="text-base-400 font-normal"> · {operatorName}</span>
-                        ) : null}
-                      </p>
-                    </div>
-                    {assignment ? (
-                      <>
-                        <Badge tone="go">{assignment.shot || 'Shot'}</Badge>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          title="Verwijder"
-                          onClick={() => removeAssignment(camera.id)}
-                        >
-                          <Trash2 size={13} className="text-live-400" />
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() =>
-                          scheduleSave({
-                            ...draft,
-                            shots: {
-                              ...draft.shots,
-                              [camera.id]: {
-                                cameraId: camera.id,
-                                shot: '',
-                                subject: '',
-                                movement: '',
-                                notes: '',
-                              },
-                            },
-                          })
-                        }
-                      >
-                        Toewijzen
-                      </Button>
-                    )}
                   </div>
-
-                  {assignment ? (
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        <Field label="Shot">
-                          <div className="relative">
-                            <input
-                              className="input pr-8"
-                              value={assignment.shot}
-                              onChange={(event) =>
-                                updateAssignment(camera.id, { shot: event.target.value })
-                              }
-                              placeholder="Bijv. Wide shot"
-                            />
-                            <button
-                              type="button"
-                              className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-base-400 hover:text-base-100"
-                              onClick={() => setShotPicker(isOpen ? null : camera.id)}
-                              title="Kies uit de shot library"
-                            >
-                              <ChevronDown size={15} />
-                            </button>
-                            {isOpen ? (
-                              <div className="absolute z-20 mt-1 w-full rounded-md bg-base-750 border border-base-600 shadow-xl p-1 max-h-56 overflow-y-auto">
-                                {STANDARD_SHOTS.map((shot) => (
-                                  <button
-                                    key={shot}
-                                    type="button"
-                                    className="block w-full text-left px-2.5 py-1.5 text-xs rounded hover:bg-base-700"
-                                    onClick={() => {
-                                      updateAssignment(camera.id, { shot });
-                                      setShotPicker(null);
-                                    }}
-                                  >
-                                    {shot}
-                                  </button>
-                                ))}
-                              </div>
-                            ) : null}
-                          </div>
-                        </Field>
-                        <Field label="Volg (persoon/groep)">
-                          <input
-                            className="input"
-                            value={assignment.subject}
-                            onChange={(event) =>
-                              updateAssignment(camera.id, { subject: event.target.value })
-                            }
-                            placeholder="Bijv. Emma - Hoofdrol"
-                            list={`subjects-${camera.id}`}
-                          />
-                          <datalist id={`subjects-${camera.id}`}>
-                            {actors.map((actor) => (
-                              <option key={actor.id} value={actor.name} />
-                            ))}
-                          </datalist>
-                        </Field>
-                      </div>
-                      <Field label="Camerabeweging">
-                        <input
-                          className="input"
-                          value={assignment.movement}
-                          onChange={(event) =>
-                            updateAssignment(camera.id, { movement: event.target.value })
-                          }
-                          placeholder="Bijv. Slow push in"
-                        />
-                      </Field>
-                      <Field label="Extra instructie">
-                        <input
-                          className="input"
-                          value={assignment.notes}
-                          onChange={(event) =>
-                            updateAssignment(camera.id, { notes: event.target.value })
-                          }
-                          placeholder="Optionele aanwijzing"
-                        />
-                      </Field>
-                    </div>
-                  ) : null}
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-base-500 text-[10px] uppercase tracking-wider">
+                        <th className="text-left font-medium px-3 py-1.5">Cam</th>
+                        <th className="text-left font-medium px-2 py-1.5">Shot</th>
+                        <th className="text-left font-medium px-2 py-1.5">Volgt</th>
+                        <th className="text-left font-medium px-2 py-1.5">Beweging</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {assignedCameras.map(({ camera, assignment, operatorName }) => {
+                        const shot = shotLabel(assignment?.shot);
+                        return (
+                          <tr key={camera.id} className="border-t border-base-800">
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <span
+                                className="inline-grid place-items-center w-5 h-5 rounded text-[10px] font-bold mr-1.5 align-middle"
+                                style={{ backgroundColor: `${camera.color}22`, color: camera.color }}
+                              >
+                                {camera.number}
+                              </span>
+                              <span className="text-base-300">{operatorName ?? camera.name}</span>
+                            </td>
+                            <td className="px-2 py-1.5 text-base-100 whitespace-nowrap">
+                              {shot.code ? (
+                                <>
+                                  <span className="font-bold text-accent-700 mr-1">{shot.code}</span>
+                                  {shot.name}
+                                </>
+                              ) : (
+                                <span className="text-base-500">—</span>
+                              )}
+                            </td>
+                            <td className="px-2 py-1.5 text-base-300 truncate max-w-[10rem]">
+                              {assignment?.subject || <span className="text-base-500">—</span>}
+                            </td>
+                            <td className="px-2 py-1.5 text-base-300 whitespace-nowrap">
+                              {assignment?.movement || <span className="text-base-500">—</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-              );
-            })
+              ) : null}
+
+              <div className="space-y-2">
+                {cameras.map((camera) => {
+                  const assignment = draft.shots[camera.id];
+                  const operatorName = showCrewByCamera.get(camera.id);
+                  return (
+                    <div
+                      key={camera.id}
+                      className={clsx(
+                        'rounded-lg border p-3 transition-colors',
+                        assignment ? 'bg-base-800 border-base-600' : 'bg-base-850 border-base-700',
+                      )}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span
+                          className="grid place-items-center w-7 h-7 rounded-md text-xs font-bold shrink-0"
+                          style={{ backgroundColor: `${camera.color}22`, color: camera.color }}
+                        >
+                          {camera.number}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">
+                            {camera.name}
+                            {operatorName ? (
+                              <span className="text-base-400 font-normal"> · {operatorName}</span>
+                            ) : null}
+                          </p>
+                        </div>
+                        {assignment ? (
+                          <>
+                            <Badge tone="go">
+                              {shotLabel(assignment.shot).code
+                                ? `${shotLabel(assignment.shot).code} · ${assignment.shot}`
+                                : assignment.shot || 'Shot'}
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              title="Verwijder"
+                              onClick={() => removeAssignment(camera.id)}
+                            >
+                              <Trash2 size={13} className="text-live-500" />
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() =>
+                              scheduleSave({
+                                ...draft,
+                                shots: {
+                                  ...draft.shots,
+                                  [camera.id]: {
+                                    cameraId: camera.id,
+                                    shot: '',
+                                    subject: '',
+                                    movement: '',
+                                    notes: '',
+                                  },
+                                },
+                              })
+                            }
+                          >
+                            Toewijzen
+                          </Button>
+                        )}
+                      </div>
+
+                      {assignment ? (
+                        <div className="space-y-3">
+                          <Field label="Shot" hint="Klik op een shot om hem direct toe te passen.">
+                            <ShotPicker
+                              value={assignment.shot}
+                              onChange={(shot) => updateAssignment(camera.id, { shot })}
+                              extraShots={shotTemplateNames}
+                            />
+                          </Field>
+
+                          <Field label="Volg (persoon/groep)" hint="Klik op de persoon of groep die deze camera volgt.">
+                            <SubjectPicker
+                              value={assignment.subject}
+                              onChange={(subject) => updateAssignment(camera.id, { subject })}
+                              subjects={actorNames}
+                            />
+                          </Field>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <Field label="Camerabeweging">
+                              <input
+                                className="input"
+                                value={assignment.movement}
+                                onChange={(event) =>
+                                  updateAssignment(camera.id, { movement: event.target.value })
+                                }
+                                placeholder="Bijv. Slow push in"
+                                list={`movements-${camera.id}`}
+                              />
+                              <datalist id={`movements-${camera.id}`}>
+                                {MOVEMENTS.map((movement) => (
+                                  <option key={movement} value={movement} />
+                                ))}
+                              </datalist>
+                            </Field>
+                            <Field label="Extra instructie">
+                              <input
+                                className="input"
+                                value={assignment.notes}
+                                onChange={(event) =>
+                                  updateAssignment(camera.id, { notes: event.target.value })
+                                }
+                                placeholder="Optionele aanwijzing"
+                              />
+                            </Field>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </Panel>
       </div>
@@ -795,7 +844,7 @@ function CueDetail({
           {draft.placements.length} aangepaste posities
         </span>
         {draft.notes ? (
-          <span className="flex items-center gap-1.5 text-signal-300">
+          <span className="flex items-center gap-1.5 text-signal-700">
             <StickyNote size={13} />
             Notitie aanwezig
           </span>
@@ -828,17 +877,20 @@ function CueStageCanvas({
 }) {
   const { ref, size } = useElementSize<HTMLDivElement>();
 
+  const height = Math.max(280, Math.round(stage.heightCm * 0.45 + 90));
+
   const scale = useMemo(() => {
     if (!size.width) return 0.3;
+    // Leave room above the stage for the upstage band and below it for the
+    // front edge, so neither is cropped.
     const available = size.width - 24;
-    return Math.max(0.12, Math.min(0.5, available / stage.widthCm));
-  }, [size.width, stage.widthCm]);
-
-  const height = Math.max(220, Math.round(stage.heightCm * scale + 90));
+    const byHeight = (height - 60) / stage.heightCm;
+    return Math.max(0.12, Math.min(0.5, available / stage.widthCm, byHeight));
+  }, [size.width, stage.widthCm, stage.heightCm, height]);
 
   return (
     <div ref={ref} className="w-full overflow-hidden rounded-lg bg-base-950">
-      {size.width > 0 ? (
+      {size.width > 0 && size.height > 0 ? (
         <StageCanvas
           stage={stage}
           elements={elements}
@@ -849,6 +901,7 @@ function CueStageCanvas({
           onChange={onChange}
           showGrid
           showCameraDirections
+          showCameraViews
         />
       ) : null}
     </div>

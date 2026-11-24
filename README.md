@@ -93,6 +93,11 @@ netwerk.
 4. De cameraman typt zijn **toegangscode** in (4 tekens, staat op de camera).
    Vanaf dat moment ontvangt de iPad automatisch de cues.
 
+FEY zoekt de show erbij op basis van de camera: de camera is via de
+cameraman gekoppeld aan een show, dus het is niet nodig om per iPad een
+show-URL te typen. Wil je een specifieke show forceren, gebruik dan
+`http://<LAN-IP>:3000/operator/<show-id>`.
+
 > **Tip:** voeg de pagina op de iPad toe aan het startscherm. Dan start hij
 > fullscreen, zonder adresbalk — handig tijdens een voorstelling.
 
@@ -163,6 +168,12 @@ crew en een **eigen podiumindeling** (waar staan de personen en groepen in
 deze cue?). De tijdlijn ondersteunt slepen om te herordenen en automatisch
 opslaan.
 
+Bovenin staat een **overzichtstabel** van deze cue: per camera welk shot, wie
+of wat gevolgd wordt en welke beweging. Het shot kiezen gaat met één klik
+(via de chips met de handbook-codes), en de persoon of groep die gevolgd wordt
+kies je uit de acteurs die op dat podium staan. De podiumindeling is volledig
+versleepbaar en het podium toont per camera het zichtgebied.
+
 ### Live Director Mode
 Het centrale bedieningsscherm: huidige cue, volgende cue, alle camera's met
 hun instructie, de podiumindeling en de crewstatus. Eén grote knop gaat naar de
@@ -172,11 +183,39 @@ crew. **Sneltoetsen**: spatie of → (volgende), ← (vorige), `S` (overslaan),
 `E` (noodmelding).
 
 ### Camera Operator Mode (iPad)
-Groot cue-nummer, wat er filmt, welk shot, welk subject, welke beweging en de
-notitie van de regie. Daaronder een vereenvoudigde podiumweergave met de
-posities van de acteurs, de andere cameraposities en de eigen cameravak met
-kijkrichting. De volgende cue staat alvast klaar als voorbereiding. Kleuren:
-groen = actief, oranje = volgende, rood = waarschuwing, grijs = geen opdracht.
+Zwart scherm met een dikke gekleurde rand — precies zoals in het
+Camerahandboek:
+
+| Rand | Status | Wat de cameramans doet |
+| --- | --- | --- |
+| **Rood** | `LIVE` | De cameramans is live: het shot blijft rustig vastgehouden. |
+| **Groen** | `STRAKS LIVE` | De cameramans is aan de beurt: het shot wordt alvast klaargezet. |
+| **Grijs** | `STAND-BY` | Geen opdracht: bewegen, zoeken en het volgende shot voorbereiden. |
+
+Midden in beeld staat de **shotcode** uit het handboek (`WS`, `MS`, `CU`, `2S`,
+`PUB`) met daaronder wie of wat gefilmd wordt. Daaronder een plattegrondje van
+het podium met een **groene lijn van de eigen camera naar het doel**, en
+onderaan staat het volgende shot alvast klaar.
+
+### Shotcodes uit het Camerahandboek
+De codes die de cameramensen in het handboek leren, staan nu overal in FEY:
+in de cue-editor, op de live-regiepagina, op het operatorscherm en in de
+PDF-export.
+
+| Code | Shot | Code | Shot |
+| --- | --- | --- | --- |
+| `WS` | Wide shot (totaal) | `CU` | Close-up (hoofd en schouders) |
+| `MS` | Medium shot (tot middel) | `2S` | Two-shot (twee kinderen) |
+| `XCU` | Extreme close-up | `OTS` | Over-the-shoulder |
+| `PUB` | Publiek (de zaal) | `—` | Vrij (geen opdracht) |
+
+### Visuele stijl
+De hele interface volgt de visuele taal van het **Camerahandboek**: een witte
+"papieren" pagina met donkere inkt (`#1b2430`), rode koppen (`#e03131`) en een
+beperkt palet. Het podium is een crème vloer (`#f2e8d5`) met maroon coulissen
+(`#b2453c`), een donkerblauwe achtergrond (`#31435c`) en blauwe zones
+(`#4c8dff`). Het operatorscherm is zwart, met de kleurencode van het
+handboek.
 
 ### Realtime synchronisatie
 Socket.IO met ruimtes per show. Bij het activeren van een cue wordt de nieuwe
@@ -209,7 +248,7 @@ Alle routes staan onder `/api` en geven JSON terug.
 | `GET/POST/PUT/DELETE` | `/shows/:id/scenes`, `/scenes/:id` | scènes |
 | `GET/POST/PUT/DELETE` | `/stages`, `/stages/:id` | podia en elementen |
 | `GET/POST/PUT/DELETE` | `/crew`, `/cameras` | crew en camera's |
-| `POST` | `/cameras/claim` | camera koppelen met toegangscode |
+| `POST` | `/cameras/claim` | camera koppelen met toegangscode (levert camera, crew en show) |
 | `GET` | `/live/:showId/state` | huidige live-status |
 | `POST` | `/live/:showId/next`, `/previous`, `/skip`, `/cue` | cue-navigatie |
 | `POST` | `/live/:showId/ad-hoc` | onverwachte cue invoegen |

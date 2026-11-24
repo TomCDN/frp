@@ -39,21 +39,29 @@ export function LiveStageView({
   }, [stage.elements, positions, cue?.cameraPositions]);
 
   const scale = useMemo(() => {
-    if (!size.width) return 0.3;
-    return Math.max(0.12, Math.min(0.6, (size.width - 24) / stage.widthCm));
-  }, [size.width, stage.widthCm]);
+    const byWidth = (size.width - 24) / stage.widthCm;
+    // Leave room above the stage for the upstage band and below it for the
+    // front edge, so neither is cropped.
+    const availableHeight = size.height > 0 ? size.height : height;
+    const byHeight = (availableHeight - 60) / stage.heightCm;
+    return Math.max(0.12, Math.min(0.6, byWidth, byHeight));
+  }, [size.width, size.height, stage.widthCm, stage.heightCm, height]);
 
-  const canvasHeight = Math.max(200, Math.round(stage.heightCm * scale + 90));
+  const canvasHeight =
+    size.height > 0 ? size.height : Math.max(200, Math.round(stage.heightCm * scale + 90));
 
   return (
-    <div ref={ref} className="rounded-lg bg-base-950 border border-base-700 overflow-hidden w-full">
+    <div
+      ref={ref}
+      className="rounded-lg bg-base-950 border border-base-700 overflow-hidden w-full flex-1 min-h-0"
+    >
       {size.width > 0 ? (
         <StageCanvas
           stage={stage}
           elements={elements}
           scale={scale}
           width={size.width}
-          height={Math.min(canvasHeight, height + 90)}
+          height={canvasHeight}
           editable={false}
           showGrid
           showCameraDirections

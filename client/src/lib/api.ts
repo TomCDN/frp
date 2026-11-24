@@ -89,7 +89,7 @@ export const api = {
   updateCamera: (id: string, body: Partial<Camera>) => put<Camera>(`/cameras/${id}`, body),
   deleteCamera: (id: string) => del<void>(`/cameras/${id}`),
   claimCamera: (code: string) =>
-    post<{ camera: Camera; crew: CrewMember | null }>('/cameras/claim', { code }),
+    post<{ camera: Camera; crew: CrewMember | null; show: Show | null }>('/cameras/claim', { code }),
 
   /* ---------------------------- Shows -------------------------- */
   shows: () => get<Show[]>('/shows'),

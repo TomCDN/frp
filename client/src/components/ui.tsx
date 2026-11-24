@@ -352,8 +352,8 @@ export function Toast({
     <div
       className={clsx(
         'fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-lg text-sm font-medium shadow-xl border bg-base-800',
-        tone === 'go' && 'border-go-500 text-go-400',
-        tone === 'live' && 'border-live-500 text-live-400',
+        tone === 'go' && 'border-go-500 text-go-700',
+        tone === 'live' && 'border-live-500 text-live-500',
         tone === 'neutral' && 'border-base-600 text-base-100',
       )}
       role="status"

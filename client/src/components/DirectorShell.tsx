@@ -46,7 +46,7 @@ export function DirectorShell() {
 
   return (
     <div className="min-h-screen bg-base-950 flex flex-col">
-      <header className="sticky top-0 z-40 bg-base-900/95 backdrop-blur border-b border-base-700 shrink-0">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-base-700 shrink-0">
         <div className="flex items-center gap-4 h-14 px-4">
           <button
             type="button"
@@ -58,10 +58,10 @@ export function DirectorShell() {
           </button>
 
           <NavLink to="/" className="flex items-center gap-2.5 shrink-0">
-            <span className="grid place-items-center w-8 h-8 rounded-md bg-accent-500 text-white font-bold text-sm">
+            <span className="grid place-items-center w-8 h-8 rounded-md bg-brand-500 text-white font-bold text-sm">
               F
             </span>
-            <span className="hidden sm:block font-semibold tracking-wider">FEY</span>
+            <span className="hidden sm:block font-bold tracking-wider">FEY</span>
           </NavLink>
 
           <nav className="hidden lg:flex items-center gap-1 ml-4">
@@ -74,8 +74,8 @@ export function DirectorShell() {
                   clsx(
                     'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-base-750 text-base-100'
-                      : 'text-base-300 hover:bg-base-800 hover:text-base-100',
+                      ? 'bg-brand-500/10 text-brand-600'
+                      : 'text-base-400 hover:bg-base-750 hover:text-base-100',
                   )
                 }
               >
@@ -89,7 +89,7 @@ export function DirectorShell() {
             <span
               className={clsx(
                 'hidden sm:flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md',
-                connected ? 'text-go-400 bg-go-500/10' : 'text-base-400 bg-base-800',
+                connected ? 'text-go-600 bg-go-500/10' : 'text-base-400 bg-base-750',
               )}
               title={connected ? 'Verbinden met de server is actief' : 'Geen verbinding met de server'}
             >
@@ -105,7 +105,7 @@ export function DirectorShell() {
         </div>
 
         {menuOpen ? (
-          <nav className="lg:hidden border-t border-base-700 bg-base-900 p-2 flex flex-col gap-1">
+          <nav className="lg:hidden border-t border-base-700 bg-white p-2 flex flex-col gap-1">
             {NAV_ITEMS.map((item) => (
               <NavLink
                 key={item.to}
@@ -114,7 +114,7 @@ export function DirectorShell() {
                 className={({ isActive }) =>
                   clsx(
                     'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium',
-                    isActive ? 'bg-base-750 text-base-100' : 'text-base-300',
+                    isActive ? 'bg-brand-500/10 text-brand-600' : 'text-base-400',
                   )
                 }
               >
@@ -149,12 +149,12 @@ export function PageHeader({
     <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
       <div className="flex items-start gap-3 min-w-0">
         {icon ? (
-          <span className="grid place-items-center w-10 h-10 rounded-lg bg-base-750 border border-base-700 text-accent-300 shrink-0">
+          <span className="grid place-items-center w-10 h-10 rounded-lg bg-brand-500/10 border border-brand-500/25 text-brand-500 shrink-0">
             {icon}
           </span>
         ) : null}
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold truncate">{title}</h1>
+          <h1 className="doc-heading truncate">{title}</h1>
           {description ? (
             <p className="text-sm text-base-400 mt-0.5">{description}</p>
           ) : null}

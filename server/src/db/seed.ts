@@ -1,7 +1,19 @@
-import { get, nowIso, run, transaction } from './database';
+import { get, nowIso, run } from './database';
 import { initSchema } from './schema';
 import { newAccessCode, newId } from '../utils/id';
 import type { Cue, StageElement } from '../types';
+
+/** The crew of the demo show, used to clean up demo data on a reset. */
+const DEMO_CREW_NAMES = [
+  'Sanne de Vries',
+  'Joris Bakker',
+  'Fatima El Amrani',
+  'Tim Visser',
+  'Nora Jansen',
+];
+
+/** The cameras of the demo show, used to clean up demo data on a reset. */
+const DEMO_CAMERA_NAMES = ['Wide shot', 'Medium shot', 'Close-up', 'Moving camera'];
 
 /**
  * Seeds a complete example show ("Musical 2027") so every feature can be
@@ -15,11 +27,17 @@ export function seedDatabase(force = false): void {
   if (existing && !force) return;
 
   if (force) {
-    // Remove demo data only, never user data.
-    const demoShow = get<{ id: string }>("SELECT id FROM shows WHERE name = 'Musical 2027'");
-    if (demoShow) run('DELETE FROM shows WHERE id = ?', demoShow.id);
-    const demoStage = get<{ id: string }>("SELECT id FROM stages WHERE name = 'Grote zaal - hoofd podium'");
-    if (demoStage) run('DELETE FROM stages WHERE id = ?', demoStage.id);
+    // Remove demo data only, never user data. The demo cameras and crew are
+    // removed as well, otherwise every reset would leave another copy of the
+    // same cameras and crew behind.
+    run("DELETE FROM shows WHERE name = 'Musical 2027'");
+    run("DELETE FROM stages WHERE name = 'Grote zaal - hoofd podium'");
+    for (const name of DEMO_CREW_NAMES) {
+      run('DELETE FROM crew WHERE name = ?', name);
+    }
+    for (const name of DEMO_CAMERA_NAMES) {
+      run('DELETE FROM cameras WHERE name = ?', name);
+    }
   }
 
   const ts = nowIso();
@@ -50,7 +68,7 @@ export function seedDatabase(force = false): void {
       width: 1200,
       height: 800,
       rotation: 0,
-      props: { color: '#1e293b' },
+      props: { color: '#f2e8d5' },
       layer: 'floor',
       locked: false,
       visible: true,
@@ -65,7 +83,7 @@ export function seedDatabase(force = false): void {
       width: 900,
       height: 240,
       rotation: 0,
-      props: { color: '#334155', heightCm: 80 },
+      props: { color: '#d8c9a8', heightCm: 80 },
       layer: 'scenery',
       locked: false,
       visible: true,
@@ -80,7 +98,7 @@ export function seedDatabase(force = false): void {
       width: 1100,
       height: 60,
       rotation: 0,
-      props: { color: '#1e3a5f' },
+      props: { color: '#31435c' },
       layer: 'scenery',
       locked: false,
       visible: true,
@@ -95,7 +113,7 @@ export function seedDatabase(force = false): void {
       width: 120,
       height: 160,
       rotation: 0,
-      props: { color: '#475569', steps: 4 },
+      props: { color: '#c9b894', steps: 4 },
       layer: 'scenery',
       locked: false,
       visible: true,
@@ -110,7 +128,7 @@ export function seedDatabase(force = false): void {
       width: 120,
       height: 160,
       rotation: 0,
-      props: { color: '#475569', steps: 4 },
+      props: { color: '#c9b894', steps: 4 },
       layer: 'scenery',
       locked: false,
       visible: true,
@@ -125,7 +143,7 @@ export function seedDatabase(force = false): void {
       width: 70,
       height: 120,
       rotation: 0,
-      props: { color: '#7c3aed' },
+      props: { color: '#b2453c' },
       layer: 'scenery',
       locked: false,
       visible: true,
@@ -140,7 +158,7 @@ export function seedDatabase(force = false): void {
       width: 160,
       height: 80,
       rotation: 0,
-      props: { color: '#78350f' },
+      props: { color: '#8a6f4e' },
       layer: 'scenery',
       locked: false,
       visible: true,
@@ -155,7 +173,7 @@ export function seedDatabase(force = false): void {
       width: 30,
       height: 30,
       rotation: 0,
-      props: { color: '#e5e7eb' },
+      props: { color: '#5c6b7a' },
       layer: 'scenery',
       locked: false,
       visible: true,
@@ -170,7 +188,7 @@ export function seedDatabase(force = false): void {
       width: 140,
       height: 80,
       rotation: 0,
-      props: { color: '#111827', instrument: 'piano' },
+      props: { color: '#31435c', instrument: 'piano' },
       layer: 'scenery',
       locked: false,
       visible: true,
@@ -184,7 +202,7 @@ export function seedDatabase(force = false): void {
       width: 130,
       height: 90,
       rotation: 0,
-      props: { color: '#111827', instrument: 'drums' },
+      props: { color: '#31435c', instrument: 'drums' },
       layer: 'scenery',
       locked: false,
       visible: true,
@@ -199,7 +217,7 @@ export function seedDatabase(force = false): void {
       width: 50,
       height: 50,
       rotation: 0,
-      props: { color: '#fbbf24' },
+      props: { color: '#f0a500' },
       layer: 'lighting',
       locked: false,
       visible: true,
@@ -213,7 +231,7 @@ export function seedDatabase(force = false): void {
       width: 50,
       height: 50,
       rotation: 0,
-      props: { color: '#fbbf24' },
+      props: { color: '#f0a500' },
       layer: 'lighting',
       locked: false,
       visible: true,
@@ -228,7 +246,7 @@ export function seedDatabase(force = false): void {
       width: 45,
       height: 45,
       rotation: 0,
-      props: { color: '#ef4444' },
+      props: { color: '#e03131' },
       layer: 'people',
       locked: false,
       visible: true,
@@ -242,7 +260,7 @@ export function seedDatabase(force = false): void {
       width: 45,
       height: 45,
       rotation: 0,
-      props: { color: '#f97316' },
+      props: { color: '#d9761a' },
       layer: 'people',
       locked: false,
       visible: true,
@@ -256,7 +274,7 @@ export function seedDatabase(force = false): void {
       width: 160,
       height: 80,
       rotation: 0,
-      props: { color: '#3b82f6', count: 8 },
+      props: { color: '#4c8dff', count: 8 },
       layer: 'people',
       locked: false,
       visible: true,
@@ -270,7 +288,7 @@ export function seedDatabase(force = false): void {
       width: 400,
       height: 70,
       rotation: 0,
-      props: { color: '#22c55e', count: 24 },
+      props: { color: '#2f9e44', count: 24 },
       layer: 'people',
       locked: false,
       visible: true,
@@ -285,7 +303,7 @@ export function seedDatabase(force = false): void {
       width: 40,
       height: 40,
       rotation: 0,
-      props: { color: '#3b82f6', direction: 270, cameraNumber: 1 },
+      props: { color: '#4c8dff', direction: 270, cameraNumber: 1 },
       layer: 'cameras',
       locked: false,
       visible: true,
@@ -299,7 +317,7 @@ export function seedDatabase(force = false): void {
       width: 40,
       height: 40,
       rotation: 0,
-      props: { color: '#ef4444', direction: 315, cameraNumber: 2 },
+      props: { color: '#e03131', direction: 315, cameraNumber: 2 },
       layer: 'cameras',
       locked: false,
       visible: true,
@@ -313,7 +331,7 @@ export function seedDatabase(force = false): void {
       width: 40,
       height: 40,
       rotation: 0,
-      props: { color: '#22c55e', direction: 225, cameraNumber: 3 },
+      props: { color: '#2f9e44', direction: 225, cameraNumber: 3 },
       layer: 'cameras',
       locked: false,
       visible: true,
@@ -327,7 +345,7 @@ export function seedDatabase(force = false): void {
       width: 40,
       height: 40,
       rotation: 0,
-      props: { color: '#eab308', direction: 270, cameraNumber: 4 },
+      props: { color: '#b06d12', direction: 270, cameraNumber: 4 },
       layer: 'cameras',
       locked: false,
       visible: true,
@@ -342,7 +360,7 @@ export function seedDatabase(force = false): void {
       width: 40,
       height: 40,
       rotation: 0,
-      props: { color: '#f43f5e', symbol: 'X' },
+      props: { color: '#e03131', symbol: 'X' },
       layer: 'overlay',
       locked: false,
       visible: true,
@@ -357,7 +375,7 @@ export function seedDatabase(force = false): void {
       width: 300,
       height: 40,
       rotation: 0,
-      props: { text: 'HOOFDPODIUM', color: '#e2e8f0' },
+      props: { text: 'HOOFDPODIUM', color: '#1b2430' },
       layer: 'overlay',
       locked: false,
       visible: true,
@@ -389,10 +407,10 @@ export function seedDatabase(force = false): void {
 
   /* ------------------------- Cameras ------------------------- */
   const cameraDefs = [
-    { number: 1, name: 'Wide shot', type: 'Wide shot', color: '#3b82f6', notes: 'Hele podium, vaste positie in het midden.', lens: '24mm', x: 600, y: 760, direction: 270 },
-    { number: 2, name: 'Medium shot', type: 'Medium shot', color: '#ef4444', notes: 'Linkerkant podium, volgt de hoofdrol.', lens: '50mm', x: 150, y: 700, direction: 315 },
-    { number: 3, name: 'Close-up', type: 'Close-up', color: '#22c55e', notes: 'Close-ups van de hoofdrolspelers.', lens: '85mm', x: 1050, y: 700, direction: 225 },
-    { number: 4, name: 'Moving camera', type: 'Tracking shot', color: '#eab308', notes: 'Dynamische shots, beweegt over de zaal.', lens: '35mm', x: 600, y: 620, direction: 270 },
+    { number: 1, name: DEMO_CAMERA_NAMES[0], type: 'Wide shot', color: '#4c8dff', notes: 'Hele podium, vaste positie in het midden.', lens: '24mm', x: 600, y: 760, direction: 270 },
+    { number: 2, name: DEMO_CAMERA_NAMES[1], type: 'Medium shot', color: '#e03131', notes: 'Linkerkant podium, volgt de hoofdrol.', lens: '50mm', x: 150, y: 700, direction: 315 },
+    { number: 3, name: DEMO_CAMERA_NAMES[2], type: 'Close-up', color: '#2f9e44', notes: 'Close-ups van de hoofdrolspelers.', lens: '85mm', x: 1050, y: 700, direction: 225 },
+    { number: 4, name: DEMO_CAMERA_NAMES[3], type: 'Tracking shot', color: '#b06d12', notes: 'Dynamische shots, beweegt over de zaal.', lens: '35mm', x: 600, y: 620, direction: 270 },
   ];
   const cameraIds: string[] = [];
   cameraDefs.forEach((cam) => {
@@ -417,11 +435,11 @@ export function seedDatabase(force = false): void {
 
   /* -------------------------- Crew --------------------------- */
   const crewDefs = [
-    { name: 'Sanne de Vries', cameraIndex: 0, role: 'Hoofd cameraman' },
-    { name: 'Joris Bakker', cameraIndex: 1, role: 'Cameraman' },
-    { name: 'Fatima El Amrani', cameraIndex: 2, role: 'Cameraman' },
-    { name: 'Tim Visser', cameraIndex: 3, role: 'Steadicam operator' },
-    { name: 'Nora Jansen', cameraIndex: -1, role: 'Regie-assistent' },
+    { name: DEMO_CREW_NAMES[0], cameraIndex: 0, role: 'Hoofd cameraman' },
+    { name: DEMO_CREW_NAMES[1], cameraIndex: 1, role: 'Cameraman' },
+    { name: DEMO_CREW_NAMES[2], cameraIndex: 2, role: 'Cameraman' },
+    { name: DEMO_CREW_NAMES[3], cameraIndex: 3, role: 'Steadicam operator' },
+    { name: DEMO_CREW_NAMES[4], cameraIndex: -1, role: 'Regie-assistent' },
   ];
   const crewIds: string[] = [];
   crewDefs.forEach((member) => {
@@ -467,9 +485,9 @@ export function seedDatabase(force = false): void {
 
   /* -------------------------- Scenes ------------------------- */
   const sceneDefs = [
-    { name: 'Acte 1 - De Roeping', color: '#3b82f6', description: 'De helden ontdekken hun bestemming.' },
+    { name: 'Acte 1 - De Roeping', color: '#4c8dff', description: 'De helden ontdekken hun bestemming.' },
     { name: 'Acte 2 - De Betrekking', color: '#a855f7', description: 'Liefde, jaloezie en een keuze.' },
-    { name: 'Acte 3 - De Oplossing', color: '#22c55e', description: 'Alles komt samen in de finale.' },
+    { name: 'Acte 3 - De Oplossing', color: '#2f9e44', description: 'Alles komt samen in de finale.' },
   ];
   const sceneIds: string[] = [];
   sceneDefs.forEach((scene, index) => {
@@ -776,7 +794,7 @@ export function seedDatabase(force = false): void {
     templateId,
     'Acte 1',
     'Klik om te hernoemen',
-    '#3b82f6',
+    '#4c8dff',
     0,
   );
 
@@ -787,14 +805,7 @@ export function seedDatabase(force = false): void {
 if (require.main === module) {
   const reset = process.argv.includes('--reset');
   initSchema();
-  if (reset) {
-    transaction(() => {
-      const demoShow = get<{ id: string }>("SELECT id FROM shows WHERE name = 'Musical 2027'");
-      if (demoShow) run('DELETE FROM shows WHERE id = ?', demoShow.id);
-      const demoStage = get<{ id: string }>("SELECT id FROM stages WHERE name = 'Grote zaal - hoofd podium'");
-      if (demoStage) run('DELETE FROM stages WHERE id = ?', demoStage.id);
-    });
-    console.log('[fey] Demo-data verwijderd.');
-  }
+  if (reset) console.log('[fey] Demo-data wordt verwijderd en opnieuw aangemaakt.');
+  // `seedDatabase(true)` removes the old demo data before creating the new one.
   seedDatabase(true);
 }

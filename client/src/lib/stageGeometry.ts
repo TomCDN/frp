@@ -27,21 +27,21 @@ export const DEFAULT_SIZES: Record<StageElementType, { width: number; height: nu
 
 /** Default colour per element type. */
 export const DEFAULT_COLORS: Record<StageElementType, string> = {
-  floor: '#1e293b',
-  platform: '#334155',
-  backdrop: '#1e3a5f',
-  stairs: '#475569',
-  door: '#7c3aed',
-  table: '#78350f',
-  chair: '#57534e',
-  microphone: '#e2e8f0',
-  instrument: '#111827',
-  light: '#fbbf24',
-  marker: '#f43f5e',
-  person: '#ef4444',
-  group: '#3b82f6',
-  camera: '#3b82f6',
-  label: '#e2e8f0',
+  floor: '#f2e8d5',
+  platform: '#d8c9a8',
+  backdrop: '#31435c',
+  stairs: '#c9b894',
+  door: '#b2453c',
+  table: '#8a6f4e',
+  chair: '#a08a68',
+  microphone: '#5c6b7a',
+  instrument: '#31435c',
+  light: '#f0a500',
+  marker: '#e03131',
+  person: '#e03131',
+  group: '#4c8dff',
+  camera: '#31435c',
+  label: '#1b2430',
 };
 
 /** Which layer does an element type belong to by default? */

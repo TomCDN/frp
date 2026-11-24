@@ -22,6 +22,7 @@ import { api } from '../lib/api';
 import { useAsync, useAsyncWhen } from '../hooks/useApi';
 import { useSocket } from '../hooks/useSocket';
 import { formatTimecode, formatRelative } from '../lib/utils';
+import { shotLabel } from '../lib/shotCodes';
 import { Badge, Button, EmptyState, Field, Loading, Modal, Toast } from '../components/ui';
 import { LiveStageView } from '../components/LiveStageView';
 import type { Camera as CameraModel, CrewMember, Cue, LiveState, Show, Stage } from '../types';
@@ -259,7 +260,7 @@ export function LivePage() {
           <span
             className={clsx(
               'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md',
-              connected ? 'text-go-400 bg-go-500/10' : 'text-live-400 bg-live-500/10',
+              connected ? 'text-go-700 bg-go-500/10' : 'text-live-500 bg-live-500/10',
             )}
           >
             {connected ? <Wifi size={13} /> : <WifiOff size={13} />}
@@ -301,8 +302,8 @@ export function LivePage() {
       {/* Emergency banner */}
       {state?.emergency ? (
         <div className="flex items-center gap-3 px-4 py-2.5 bg-live-500/20 border-b border-live-500/50 shrink-0">
-          <AlertTriangle size={18} className="text-live-400 shrink-0 animate-pulse" />
-          <p className="text-sm font-semibold text-live-400 flex-1">{state.emergency}</p>
+          <AlertTriangle size={18} className="text-live-500 shrink-0 animate-pulse" />
+          <p className="text-sm font-semibold text-live-500 flex-1">{state.emergency}</p>
           <Button size="sm" variant="secondary" onClick={() => void clearEmergency()}>
             wissen
           </Button>
@@ -310,7 +311,7 @@ export function LivePage() {
       ) : null}
 
       {lastMessage && lastMessage.kind !== 'emergency' ? (
-        <div className="px-4 py-1.5 bg-accent-500/10 border-b border-accent-500/30 text-xs text-accent-300 shrink-0">
+        <div className="px-4 py-1.5 bg-accent-500/10 border-b border-accent-500/30 text-xs text-accent-700 shrink-0">
           <span className="font-semibold">{lastMessage.fromName}:</span> {lastMessage.text}
         </div>
       ) : null}
@@ -324,7 +325,7 @@ export function LivePage() {
             <div className="flex items-center gap-3 mb-3">
               <span className="kicker">Huidige cue</span>
               {countdown !== null ? (
-                <span className="text-xs font-semibold text-signal-300">
+                <span className="text-xs font-semibold text-signal-700">
                   volgende cue over {countdown}s
                 </span>
               ) : null}
@@ -348,14 +349,14 @@ export function LivePage() {
                         {formatTimecode(currentCue.startSeconds, showData.settings.timecodeFormat)}
                       </span>
                       {currentCue.notes ? (
-                        <span className="text-signal-300">Notitie aanwezig</span>
+                        <span className="text-signal-700">Notitie aanwezig</span>
                       ) : null}
                     </div>
                   </div>
                 </div>
 
                 {currentCue.notes ? (
-                  <div className="mt-3 px-3 py-2 rounded-lg bg-signal-500/10 border border-signal-500/30 text-sm text-signal-300">
+                  <div className="mt-3 px-3 py-2 rounded-lg bg-signal-500/10 border border-signal-500/30 text-sm text-signal-700">
                     {currentCue.notes}
                   </div>
                 ) : null}
@@ -393,8 +394,10 @@ export function LivePage() {
                           ) : null}
                         </div>
                         {assignment ? (
-                          <p className="text-sm font-semibold text-accent-300 mt-1.5 truncate">
-                            {assignment.shot || 'Zonder shot'}
+                          <p className="text-sm font-semibold text-accent-700 mt-1.5 truncate">
+                            {shotLabel(assignment.shot).code
+                              ? `${shotLabel(assignment.shot).code} · ${assignment.shot || 'Zonder shot'}`
+                              : assignment.shot || 'Zonder shot'}
                           </p>
                         ) : (
                           <p className="text-xs text-base-500 mt-1.5">Geen opdracht</p>
@@ -406,7 +409,7 @@ export function LivePage() {
                           <p className="text-xs text-base-400 truncate">→ {assignment.movement}</p>
                         ) : null}
                         {assignment?.notes ? (
-                          <p className="text-xs text-signal-300 truncate mt-0.5">{assignment.notes}</p>
+                          <p className="text-xs text-signal-700 truncate mt-0.5">{assignment.notes}</p>
                         ) : null}
                       </div>
                     );
@@ -428,8 +431,8 @@ export function LivePage() {
           </div>
 
           {/* Stage */}
-          <div className="p-4 sm:p-5 flex-1 min-h-0">
-            <p className="kicker mb-3">Podiumindeling</p>
+          <div className="p-4 sm:p-5 flex-1 min-h-0 flex flex-col">
+            <p className="kicker mb-3 shrink-0">Podiumindeling</p>
             {stage.data ? (
               <LiveStageView stage={stage.data} cue={currentCue} height={280} />
             ) : (
@@ -481,7 +484,7 @@ export function LivePage() {
                 className="w-full text-left rounded-lg border border-signal-500/40 bg-signal-500/10 px-3 py-2.5 hover:bg-signal-500/15 transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <span className="grid place-items-center w-8 h-8 rounded-md bg-signal-500/20 text-signal-300 text-sm font-bold tabular">
+                  <span className="grid place-items-center w-8 h-8 rounded-md bg-signal-500/20 text-signal-700 text-sm font-bold tabular">
                     {nextCue.number}
                   </span>
                   <span className="text-sm font-semibold truncate flex-1">{nextCue.name}</span>

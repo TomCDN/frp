@@ -170,7 +170,7 @@ export function DashboardPage() {
               <Panel
                 title="Aankomende shows"
                 actions={
-                  <Link to="/shows" className="text-xs text-accent-300 hover:text-accent-200">
+                  <Link to="/shows" className="text-xs text-accent-700 hover:text-accent-600">
                     Alles bekijken
                   </Link>
                 }
@@ -201,7 +201,7 @@ export function DashboardPage() {
               <Panel
                 title="Recente shows"
                 actions={
-                  <Link to="/shows" className="text-xs text-accent-300 hover:text-accent-200">
+                  <Link to="/shows" className="text-xs text-accent-700 hover:text-accent-600">
                     Alles bekijken
                   </Link>
                 }
@@ -234,7 +234,7 @@ export function DashboardPage() {
               <Panel
                 title="Opgeslagen podia"
                 actions={
-                  <Link to="/stages" className="text-xs text-accent-300 hover:text-accent-200">
+                  <Link to="/stages" className="text-xs text-accent-700 hover:text-accent-600">
                     Beheer
                   </Link>
                 }

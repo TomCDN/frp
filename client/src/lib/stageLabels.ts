@@ -18,17 +18,17 @@ export interface LabelPlacement {
   text: string;
   /** Font size the label is rendered with. */
   fontSize: number;
-  /** Horizontal centre of the label. */
-  cx: number;
+  /** Horizontal alignment of the text around `x`. */
+  align: 'center' | 'left';
+  /**
+   * Horizontal anchor: the centre of the text for `align: 'center'`, the left
+   * edge of the text for `align: 'left'`.
+   */
+  x: number;
   /** Preferred top edge of the label. */
   top: number;
   /** Half of the rendered width of the label. */
   halfWidth: number;
-  /**
-   * Movable labels are shifted to avoid overlapping another label. Labels that
-   * belong to a fixed shape keep their position and act as obstacles.
-   */
-  movable: boolean;
 }
 
 /** The shift that has to be applied to a label to resolve an overlap. */
@@ -38,21 +38,19 @@ export interface LabelOffset {
 }
 
 /** Where and how the label of a stage element is drawn. */
-export interface ElementLabel {
-  text: string;
-  fontSize: number;
+export interface ElementLabel extends Omit<LabelPlacement, 'id'> {
   bold: boolean;
-  /** Horizontal centre of the label. */
-  cx: number;
-  /** Preferred top edge of the label. */
-  top: number;
-  /** Half of the rendered width of the label. */
-  halfWidth: number;
-  /** Whether the label may be moved to avoid an overlap. */
-  movable: boolean;
 }
 
-const SCENERY_TYPES = new Set(['floor', 'platform', 'backdrop', 'stairs', 'door', 'table', 'chair']);
+/**
+ * Shapes whose name is drawn inside the shape. The platform, backdrop and
+ * the furniture are the surface the show happens on, so their name goes in
+ * the top left corner instead of the middle, where the actors stand.
+ *
+ * The floor itself is not labelled: the stage already says "PODIUM (achter)"
+ * at the top, like the floor plan in the handbook.
+ */
+const CORNER_LABEL_TYPES = new Set(['platform', 'backdrop', 'stairs', 'door', 'table', 'chair']);
 
 let measureContext: CanvasRenderingContext2D | null = null;
 
@@ -99,10 +97,10 @@ export function actorLabel(
     text,
     fontSize,
     bold: false,
-    cx: px,
+    align: 'center',
+    x: px,
     top: py + (isGroup ? h / 2 + 4 : radius + 4),
     halfWidth: measureLabelWidth(text, fontSize) / 2,
-    movable: true,
   };
 }
 
@@ -126,18 +124,33 @@ export function elementLabel(
     return actorLabel(element, x, y, scale);
   }
 
-  if (SCENERY_TYPES.has(element.type)) {
+  if (CORNER_LABEL_TYPES.has(element.type)) {
     if (!element.name) return null;
     const fontSize = 10;
+    const text = element.name;
     return {
-      text: element.name,
+      text,
       fontSize,
       bold: false,
-      cx: x,
-      top: y - 6,
-      // The text is drawn inside the shape, so it can never be wider.
-      halfWidth: Math.min(measureLabelWidth(element.name, fontSize) / 2, w / 2),
-      movable: false,
+      align: 'left',
+      x: x - w / 2 + 4,
+      top: y - h / 2 + 3,
+      halfWidth: measureLabelWidth(text, fontSize) / 2,
+    };
+  }
+
+  if (element.type === 'marker') {
+    const radius = Math.max(w, h) / 2;
+    const fontSize = radius * 0.9;
+    const text = String(element.props?.symbol ?? 'X');
+    return {
+      text,
+      fontSize,
+      bold: true,
+      align: 'center' as const,
+      x,
+      top: y - radius * 0.6,
+      halfWidth: measureLabelWidth(text, fontSize, true) / 2,
     };
   }
 
@@ -149,10 +162,10 @@ export function elementLabel(
       text,
       fontSize,
       bold: true,
-      cx: x,
+      align: 'center',
+      x,
       top: y - 7,
-      halfWidth: Math.min(measureLabelWidth(text, fontSize, true) / 2, w / 2),
-      movable: false,
+      halfWidth: measureLabelWidth(text, fontSize, true) / 2,
     };
   }
 
@@ -162,10 +175,10 @@ export function elementLabel(
 /**
  * Resolves overlapping labels.
  *
- * Labels that belong to a fixed shape keep their position and act as
- * obstacles. Movable labels are pushed below the label they collide with;
- * when that would move them out of the canvas they are moved up instead. The
- * horizontal position never changes, so a label stays attached to its element.
+ * Labels are processed from top to bottom. A label that still overlaps an
+ * already placed one is pushed below it; when that would move it out of the
+ * canvas it is moved up instead. The horizontal position never changes, so a
+ * label stays attached to its element.
  */
 export function placeLabels(
   placements: LabelPlacement[],
@@ -176,10 +189,7 @@ export function placeLabels(
   const maxY = options.maxY ?? Number.POSITIVE_INFINITY;
 
   const offsets = new Map<string, LabelOffset>();
-  const anchored = placements.filter((placement) => !placement.movable);
-  const movable = [...placements.filter((placement) => placement.movable)].sort(
-    (a, b) => a.top - b.top || a.cx - b.cx,
-  );
+  const ordered = [...placements].sort((a, b) => a.top - b.top || a.x - b.x);
 
   interface Box {
     left: number;
@@ -188,14 +198,17 @@ export function placeLabels(
     bottom: number;
   }
 
-  const boxOf = (placement: LabelPlacement, top: number): Box => ({
-    left: placement.cx - placement.halfWidth,
-    right: placement.cx + placement.halfWidth,
-    top,
-    bottom: top + placement.fontSize,
-  });
+  const boxOf = (placement: LabelPlacement, top: number): Box => {
+    const left = placement.align === 'center' ? placement.x - placement.halfWidth : placement.x;
+    return {
+      left,
+      right: left + placement.halfWidth * 2,
+      top,
+      bottom: top + placement.fontSize,
+    };
+  };
 
-  const placed: Box[] = anchored.map((placement) => boxOf(placement, placement.top));
+  const placed: Box[] = [];
 
   const clashWith = (box: Box) =>
     placed.find(
@@ -203,7 +216,7 @@ export function placeLabels(
         box.right > other.left && box.left < other.right && box.bottom > other.top && box.top < other.bottom,
     );
 
-  for (const placement of movable) {
+  for (const placement of ordered) {
     const box = boxOf(placement, placement.top);
 
     let top = placement.top;

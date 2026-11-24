@@ -30,8 +30,8 @@ export function getSocket(): Socket {
 
 export function emitOperatorJoin(payload: {
   showId: string;
-  crewId: string;
-  cameraId: string;
+  crewId?: string;
+  cameraId?: string;
   deviceName?: string;
 }): void {
   getSocket().emit('operator:join', payload);

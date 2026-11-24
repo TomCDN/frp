@@ -452,6 +452,27 @@ export function getShowCrew(showId: string): string[] {
   return all<{ crew_id: string }>('SELECT crew_id FROM show_crew WHERE show_id = ?', showId).map((r) => r.crew_id);
 }
 
+/**
+ * Finds the show a camera belongs to.
+ *
+ * A camera is linked to a show through the crew member that operates it. When
+ * a camera is used in more than one show, the show that is live (or the most
+ * recently updated one) wins, so an operator always ends up in the show that is
+ * actually running.
+ */
+export function findShowForCamera(cameraId: string): Show | undefined {
+  const row = get<ShowRow>(
+    `SELECT s.* FROM shows s
+     JOIN show_crew sc ON sc.show_id = s.id
+     JOIN crew c ON c.id = sc.crew_id
+     WHERE c.camera_id = ? AND s.is_template = 0
+     ORDER BY s.archived ASC, s.date IS NULL, s.date DESC, s.updated_at DESC
+     LIMIT 1`,
+    cameraId,
+  );
+  return row ? toShow(row) : undefined;
+}
+
 export function setShowCrew(showId: string, crewIds: string[]): string[] {
   transaction(() => {
     run('DELETE FROM show_crew WHERE show_id = ?', showId);

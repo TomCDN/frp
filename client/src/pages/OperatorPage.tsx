@@ -8,18 +8,16 @@ import {
   Check,
   Wifi,
   WifiOff,
-  Target,
-  MoveRight,
   MessageSquare,
-  RotateCw,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { api } from '../lib/api';
 import { useAsync, useAsyncWhen, useLocalStorage } from '../hooks/useApi';
 import { useSocket } from '../hooks/useSocket';
-import { formatTimecode } from '../lib/utils';
-import { Badge, Button, Field, Toast } from '../components/ui';
+import { Button, Field, Toast } from '../components/ui';
 import { OperatorStage } from '../components/OperatorStage';
+import { STATUS_COLORS } from '../lib/stagePalette';
+import { shotLabel } from '../lib/shotCodes';
 import type { Camera as CameraModel, CrewMember, Cue, LiveState, Show, Stage } from '../types';
 
 interface DeviceIdentity {
@@ -136,21 +134,29 @@ export function OperatorPage() {
     setClaimBusy(true);
     try {
       const result = await api.claimCamera(claimCode.trim());
+      // The camera is linked to a show through its crew member. When the
+      // operator opened the screen without a show in the url, the claim
+      // response tells us which show to subscribe to.
+      const claimedShowId = routeShowId ?? result.show?.id ?? activeShowId;
       const next: DeviceIdentity = {
         crewId: result.crew?.id ?? null,
         cameraId: result.camera.id,
-        showId: activeShowId,
+        showId: claimedShowId,
       };
       setIdentity(next);
-      setDeviceShowId(activeShowId);
+      setDeviceShowId(claimedShowId);
       setClaimCode('');
-      setToast(`Gekoppeld aan ${result.camera.name}`);
+      setToast(
+        result.show
+          ? `Gekoppeld aan ${result.camera.name} — ${result.show.name}`
+          : `Gekoppeld aan ${result.camera.name}`,
+      );
     } catch (error) {
       setToast(error instanceof Error ? error.message : 'Koppelen mislukt');
     } finally {
       setClaimBusy(false);
     }
-  }, [claimCode, activeShowId, setIdentity]);
+  }, [claimCode, routeShowId, activeShowId, setIdentity]);
 
   function disconnect() {
     setIdentity({ crewId: null, cameraId: null, showId: null });
@@ -177,305 +183,258 @@ export function OperatorPage() {
 
   /* ------------------------- Operator screen ------------------------ */
 
-  const status: 'active' | 'next' | 'warning' | 'idle' = state?.emergency
-    ? 'warning'
+  /*
+    The handbook teaches the operators to read their tablet by the colour of
+    the border:
+      red    = you are live, hold your shot still
+      green  = you are next, prepare your shot
+      grey   = stand-by, you may move and search
+  */
+  const status: 'live' | 'next' | 'standby' = state?.emergency
+    ? 'live'
     : assignment
-      ? 'active'
-      : 'idle';
+      ? 'live'
+      : nextAssignment
+        ? 'next'
+        : 'standby';
+
+  const statusLabel =
+    status === 'live' ? 'LIVE' : status === 'next' ? 'STRAKS LIVE' : 'STAND-BY';
+
+  const borderColor =
+    status === 'live'
+      ? STATUS_COLORS.live
+      : status === 'next'
+        ? STATUS_COLORS.next
+        : STATUS_COLORS.standby;
+
+  const shot = shotLabel(assignment?.shot);
+  const nextShot = shotLabel(nextAssignment?.shot);
 
   return (
-    <div className="min-h-screen bg-base-950 flex flex-col">
-      {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-3 border-b border-base-700 bg-base-900 shrink-0">
-        <span
-          className="grid place-items-center w-11 h-11 rounded-xl text-xl font-bold shrink-0"
-          style={{
-            backgroundColor: camera ? `${camera.color}22` : '#1e293b',
-            color: camera?.color ?? '#8593a8',
-          }}
-        >
-          {camera?.number ?? '?'}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold truncate">{camera?.name ?? 'Camera'}</p>
-          <p className="text-xs text-base-400 truncate">
-            {member?.name ?? 'Cameraman'}
-            {show.data ? ` · ${show.data.name}` : ''}
-          </p>
-        </div>
-        <span
-          className={clsx(
-            'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md shrink-0',
-            connected ? 'text-go-400 bg-go-500/10' : 'text-live-400 bg-live-500/10',
-          )}
-        >
-          {connected ? <Wifi size={14} /> : <WifiOff size={14} />}
-          <span className="hidden sm:inline">{connected ? 'Live' : 'Offline'}</span>
-        </span>
-        <Button size="sm" variant="ghost" onClick={disconnect} title="Uitloggen">
-          <LogOut size={16} />
-        </Button>
-      </header>
-
-      {/* Emergency banner */}
-      {state?.emergency ? (
-        <div className="flex items-center gap-3 px-4 py-4 bg-live-500/25 border-b-2 border-live-500 shrink-0">
-          <AlertTriangle size={26} className="text-live-400 shrink-0 animate-pulse" />
-          <p className="text-lg font-bold text-live-400 leading-tight">{state.emergency}</p>
-        </div>
-      ) : null}
-
-      {/* Direct message */}
-      {directMessage ? (
-        <div className="flex items-center gap-3 px-4 py-3 bg-accent-500/15 border-b border-accent-500/40 shrink-0">
-          <MessageSquare size={20} className="text-accent-300 shrink-0" />
-          <p className="text-base font-medium text-accent-300">{directMessage}</p>
-        </div>
-      ) : null}
-
-      {/* Last general message */}
-      {lastMessage && lastMessage.kind !== 'emergency' && !directMessage ? (
-        <div className="px-4 py-2 bg-base-800 border-b border-base-700 text-sm text-base-200 shrink-0">
-          <span className="font-semibold text-base-300">{lastMessage.fromName}:</span> {lastMessage.text}
-        </div>
-      ) : null}
-
-      {/* Main */}
-      <main className="flex-1 min-h-0 flex flex-col lg:flex-row">
-        {/* Current assignment */}
-        <section className="flex-1 min-h-0 flex flex-col p-4 sm:p-5 lg:p-6">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="kicker">Huidige opdracht</span>
-            {state?.rehearsal ? <Badge tone="signal">Oefenmodus</Badge> : null}
-          </div>
-
-          {currentCue ? (
-            <div
-              className={clsx(
-                'rounded-2xl border-2 p-5 sm:p-6 flex-1 min-h-0 flex flex-col',
-                status === 'warning'
-                  ? 'status-warning'
-                  : status === 'active'
-                    ? 'status-active'
-                    : 'status-idle',
-              )}
-            >
-              <div className="flex items-start gap-4 sm:gap-6">
-                <span
-                  className={clsx(
-                    'grid place-items-center rounded-2xl font-bold tabular shrink-0',
-                    status === 'active'
-                      ? 'w-20 h-20 sm:w-24 sm:h-24 text-4xl sm:text-5xl bg-go-500 text-black'
-                      : status === 'warning'
-                        ? 'w-20 h-20 sm:w-24 sm:h-24 text-4xl sm:text-5xl bg-live-500 text-white'
-                        : 'w-20 h-20 sm:w-24 sm:h-24 text-4xl sm:text-5xl bg-base-700 text-base-300',
-                  )}
-                >
-                  {currentCue.number}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-2xl sm:text-4xl font-bold leading-tight truncate">
-                    {currentCue.name}
-                  </h1>
-                  {currentCue.description ? (
-                    <p className="text-base sm:text-xl text-base-200 mt-2 leading-snug">
-                      {currentCue.description}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-
-              {assignment ? (
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <InstructionBlock
-                    icon={<Target size={20} />}
-                    label="Shot"
-                    value={assignment.shot || '—'}
-                    tone="go"
-                  />
-                  <InstructionBlock
-                    icon={<Target size={20} />}
-                    label="Volg"
-                    value={assignment.subject || '—'}
-                  />
-                  <InstructionBlock
-                    icon={<MoveRight size={20} />}
-                    label="Beweging"
-                    value={assignment.movement || 'Geen beweging'}
-                  />
-                  <InstructionBlock
-                    icon={<RotateCw size={20} />}
-                    label="Tijdcode"
-                    value={formatTimecode(currentCue.startSeconds, show.data?.settings.timecodeFormat ?? 'mm:ss')}
-                  />
-                </div>
-              ) : (
-                <div className="mt-5 rounded-xl border border-base-600 bg-base-850 p-5 text-center">
-                  <p className="text-lg font-semibold text-base-300">
-                    Geen opdracht voor deze camera
-                  </p>
-                  <p className="text-sm text-base-400 mt-1">
-                    Wacht op de regie voor een nieuwe cue.
-                  </p>
-                </div>
-              )}
-
-              {assignment?.notes ? (
-                <p className="mt-3 rounded-xl bg-base-800 border border-base-600 px-4 py-3 text-base text-base-200">
-                  {assignment.notes}
-                </p>
-              ) : null}
-
-              {currentCue.notes ? (
-                <div className="mt-3 rounded-xl bg-signal-500/10 border border-signal-500/40 px-4 py-3">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-signal-300 mb-1">
-                    Notitie van de regie
-                  </p>
-                  <p className="text-base text-signal-200 leading-snug">{currentCue.notes}</p>
-                </div>
-              ) : null}
-
-              {currentCue.shotReferenceUrl ? (
-                <img
-                  src={currentCue.shotReferenceUrl}
-                  alt="Shotreferentie"
-                  className="mt-4 rounded-xl border border-base-700 max-h-56 object-contain bg-base-900"
-                />
-              ) : null}
-
-              {show.data?.settings.operatorsCanAcknowledge ? (
-                <Button
-                  variant={acked ? 'secondary' : 'primary'}
-                  size="lg"
-                  className="mt-5 w-full py-4 text-lg"
-                  onClick={() => {
-                    if (!currentCue || !camera) return;
-                    acknowledge(currentCue.id);
-                    setAcked(true);
-                  }}
-                  disabled={acked}
-                >
-                  {acked ? (
-                    <>
-                      <Check size={20} /> Opdracht ontvangen
-                    </>
-                  ) : (
-                    'Bevestig dat je de opdracht hebt ontvangen'
-                  )}
-                </Button>
-              ) : null}
-            </div>
-          ) : (
-            <div className="rounded-2xl border-2 border-base-700 bg-base-850 p-8 text-center flex-1 flex flex-col items-center justify-center">
-              <p className="text-2xl font-semibold text-base-300">
-                {show.data?.settings.standbyMessage ?? 'Wachten op regie...'}
-              </p>
-              <p className="text-base text-base-400 mt-2">
-                De volgende cue verschijnt hier automatisch zodra de regie hem activeert.
-              </p>
-            </div>
-          )}
-        </section>
-
-        {/* Right column: stage + next cue */}
-        <aside className="lg:w-[420px] xl:w-[480px] border-t lg:border-t-0 lg:border-l border-base-700 bg-base-900 p-4 sm:p-5 flex flex-col gap-4 shrink-0">
-          {stage.data ? (
-            <div>
-              <p className="kicker mb-2">Podium</p>
-              <OperatorStage
-                stage={stage.data}
-                cue={currentCue}
-                camera={camera}
-                height={240}
-              />
-            </div>
-          ) : null}
-
-          {nextCue ? (
-            <div className="rounded-xl border border-signal-500/40 bg-signal-500/10 p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="kicker text-signal-300">Volgende opdracht</span>
-                <ChevronRight size={14} className="text-signal-400" />
-                <span className="tabular text-sm font-bold text-signal-300">{nextCue.number}</span>
-              </div>
-              <p className="text-lg font-semibold truncate">{nextCue.name}</p>
-              {nextAssignment ? (
-                <div className="mt-2 space-y-1 text-sm">
-                  <p className="text-signal-200">
-                    <span className="text-signal-300/70">Shot:</span> {nextAssignment.shot || '—'}
-                  </p>
-                  {nextAssignment.subject ? (
-                    <p className="text-base-300">
-                      <span className="text-signal-300/70">Volg:</span> {nextAssignment.subject}
-                    </p>
-                  ) : null}
-                  {nextAssignment.movement ? (
-                    <p className="text-base-300">
-                      <span className="text-signal-300/70">Beweging:</span> {nextAssignment.movement}
-                    </p>
-                  ) : null}
-                </div>
-              ) : (
-                <p className="text-sm text-base-400 mt-1">
-                  Geen shot gepland voor deze camera.
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-base-700 bg-base-850 p-4">
-              <p className="kicker mb-1">Volgende opdracht</p>
-              <p className="text-sm text-base-400">Dit is de laatste cue van de show.</p>
-            </div>
-          )}
-
-          <div className="mt-auto">
-            <a
-              href={`/api/export/cameras/${identity.cameraId}/pdf${activeShowId ? `?showId=${activeShowId}` : ''}`}
-              className="btn btn-secondary btn-sm w-full"
-            >
-              Mijn shotlist (PDF)
-            </a>
-          </div>
-        </aside>
-      </main>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Instruction block                                                  */
-/* ------------------------------------------------------------------ */
-
-function InstructionBlock({
-  icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  tone?: 'go';
-}) {
-  return (
-    <div
-      className={clsx(
-        'rounded-xl border px-4 py-3',
-        tone === 'go' ? 'border-go-500/50 bg-go-500/10' : 'border-base-600 bg-base-850',
-      )}
-    >
-      <div className="flex items-center gap-2 text-base-400 mb-1">
-        {icon}
-        <span className="text-[11px] font-bold uppercase tracking-wider">{label}</span>
-      </div>
-      <p
-        className={clsx(
-          'text-lg sm:text-xl font-semibold leading-tight',
-          tone === 'go' ? 'text-go-400' : 'text-base-100',
-        )}
+    <div className="min-h-screen bg-black flex flex-col">
+      {/* The tablet: a black screen with a thick coloured border. */}
+      <div
+        className="flex-1 min-h-0 flex flex-col m-0 sm:m-2 lg:m-3 rounded-xl overflow-hidden"
+        style={{ border: `10px solid ${borderColor}` }}
       >
-        {value}
-      </p>
+        {/* Header */}
+        <header className="flex items-center gap-3 px-4 py-3 bg-black shrink-0">
+          <span
+            className="grid place-items-center w-11 h-11 rounded-xl text-xl font-bold shrink-0"
+            style={{
+              backgroundColor: camera ? `${camera.color}33` : '#1b2430',
+              color: camera?.color ?? '#7a8794',
+            }}
+          >
+            {camera?.number ?? '?'}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-white truncate">{camera?.name ?? 'Camera'}</p>
+            <p className="text-xs text-[#7a8794] truncate">
+              {member?.name ?? 'Cameraman'}
+              {show.data ? ` · ${show.data.name}` : ''}
+            </p>
+          </div>
+          <span
+            className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md shrink-0 uppercase tracking-wider"
+            style={{ backgroundColor: `${borderColor}22`, color: borderColor }}
+          >
+            {connected ? <Wifi size={14} /> : <WifiOff size={14} />}
+            <span className="hidden sm:inline">{connected ? statusLabel : 'Offline'}</span>
+          </span>
+          <Button size="sm" variant="ghost" onClick={disconnect} title="Uitloggen" className="text-[#7a8794] hover:text-white">
+            <LogOut size={16} />
+          </Button>
+        </header>
+
+        {/* Emergency banner */}
+        {state?.emergency ? (
+          <div
+            className="flex items-center gap-3 px-4 py-4 shrink-0"
+            style={{ backgroundColor: `${STATUS_COLORS.live}22`, borderBottom: `2px solid ${STATUS_COLORS.live}` }}
+          >
+            <AlertTriangle size={26} className="shrink-0 animate-pulse" style={{ color: STATUS_COLORS.live }} />
+            <p className="text-lg font-bold leading-tight" style={{ color: STATUS_COLORS.live }}>
+              {state.emergency}
+            </p>
+          </div>
+        ) : null}
+
+        {/* Direct message */}
+        {directMessage ? (
+          <div
+            className="flex items-center gap-3 px-4 py-3 shrink-0"
+            style={{ backgroundColor: 'rgba(76,141,255,0.16)', borderBottom: '1px solid #4c8dff' }}
+          >
+            <MessageSquare size={20} className="shrink-0" style={{ color: '#7fb0ff' }} />
+            <p className="text-base font-medium" style={{ color: '#c6ddff' }}>
+              {directMessage}
+            </p>
+          </div>
+        ) : null}
+
+        {/* Last general message */}
+        {lastMessage && lastMessage.kind !== 'emergency' && !directMessage ? (
+          <div className="px-4 py-2 bg-black text-sm shrink-0" style={{ borderBottom: '1px solid #1b2430' }}>
+            <span className="font-semibold text-white">{lastMessage.fromName}:</span>{' '}
+            <span className="text-[#b6c0cf]">{lastMessage.text}</span>
+          </div>
+        ) : null}
+
+        {/* Main */}
+        <main className="flex-1 min-h-0 flex flex-col lg:flex-row">
+          {/* The shot, in the middle of the screen. */}
+          <section className="flex-1 min-h-0 flex flex-col p-4 sm:p-5 lg:p-6">
+            {/* The scene, at the top. */}
+            <p className="text-center text-white/60 text-sm uppercase tracking-[0.2em] shrink-0">
+              {currentCue?.name ?? 'Geen actieve scene'}
+            </p>
+
+            {currentCue ? (
+              <div className="flex-1 min-h-0 flex flex-col items-center justify-center py-4 text-center">
+                {/* The shot code, big in the middle. A dash means "vrij". */}
+                <p
+                  className="font-bold leading-none tracking-tight"
+                  style={{ color: borderColor, fontSize: 'clamp(4rem, 18vw, 11rem)' }}
+                >
+                  {shot.code || '—'}
+                </p>
+                <p className="mt-2 text-white font-semibold text-xl sm:text-3xl">
+                  {assignment ? shot.name || 'Geen shot' : 'Vrij'}
+                </p>
+                {assignment?.subject ? (
+                  <p className="mt-1 text-[#b6c0cf] text-lg sm:text-2xl">
+                    {assignment.subject}
+                  </p>
+                ) : null}
+
+                {assignment?.movement ? (
+                  <p className="mt-3 text-sm text-[#7a8794]">
+                    {assignment.movement}
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-center">
+                <p className="text-2xl font-semibold text-white">
+                  {show.data?.settings.standbyMessage ?? 'Wachten op regie...'}
+                </p>
+                <p className="text-base text-[#7a8794] mt-2">
+                  De volgende cue verschijnt hier automatisch zodra de regie hem activeert.
+                </p>
+              </div>
+            )}
+
+            {assignment?.notes ? (
+              <p className="text-center text-white text-base mb-3">{assignment.notes}</p>
+            ) : null}
+
+            {currentCue?.notes ? (
+              <p className="text-center text-sm text-[#e8b054] mb-3">{currentCue.notes}</p>
+            ) : null}
+
+            {show.data?.settings.operatorsCanAcknowledge ? (
+              <Button
+                variant="ghost"
+                size="lg"
+                className="w-full py-4 text-lg shrink-0"
+                style={{
+                  border: `2px solid ${borderColor}`,
+                  color: borderColor,
+                  backgroundColor: 'transparent',
+                }}
+                onClick={() => {
+                  if (!currentCue || !camera) return;
+                  acknowledge(currentCue.id);
+                  setAcked(true);
+                }}
+                disabled={acked}
+              >
+                {acked ? (
+                  <>
+                    <Check size={20} /> Opdracht ontvangen
+                  </>
+                ) : (
+                  'Bevestig dat je de opdracht hebt ontvangen'
+                )}
+              </Button>
+            ) : null}
+          </section>
+
+          {/* Right column: stage plan + next shot */}
+          <aside className="lg:w-[420px] xl:w-[480px] border-t lg:border-t-0 lg:border-l border-[#1b2430] bg-black p-4 sm:p-5 flex flex-col gap-4 shrink-0">
+            {stage.data ? (
+              <div>
+                <p className="text-[#7a8794] text-xs uppercase tracking-[0.15em] mb-2">
+                  Waar je moet filmen
+                </p>
+                <OperatorStage
+                  stage={stage.data}
+                  cue={currentCue}
+                  camera={camera}
+                  height={240}
+                />
+              </div>
+            ) : null}
+
+            {/* The next shot, at the bottom. */}
+            {nextCue ? (
+              <div className="rounded-xl p-4" style={{ border: `1px solid ${STATUS_COLORS.next}66` }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span
+                    className="text-xs uppercase tracking-[0.15em] font-bold"
+                    style={{ color: STATUS_COLORS.next }}
+                  >
+                    Volgende shot
+                  </span>
+                  <ChevronRight size={14} style={{ color: STATUS_COLORS.next }} />
+                  <span className="tabular text-sm font-bold" style={{ color: STATUS_COLORS.next }}>
+                    {nextCue.number}
+                  </span>
+                </div>
+                {nextAssignment ? (
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="font-bold leading-none"
+                      style={{ color: STATUS_COLORS.next, fontSize: '2.5rem' }}
+                    >
+                      {nextShot.code || '—'}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-white font-semibold truncate">{nextShot.name || 'Geen shot'}</p>
+                      {nextAssignment.subject ? (
+                        <p className="text-sm text-[#b6c0cf] truncate">{nextAssignment.subject}</p>
+                      ) : null}
+                      {nextAssignment.movement ? (
+                        <p className="text-sm text-[#7a8794] truncate">{nextAssignment.movement}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-[#7a8794]">Geen shot gepland voor deze camera.</p>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-xl p-4" style={{ border: '1px solid #1b2430' }}>
+                <p className="text-xs uppercase tracking-[0.15em] font-bold text-[#7a8794]">
+                  Volgende shot
+                </p>
+                <p className="text-sm text-[#7a8794] mt-1">Dit is de laatste cue van de show.</p>
+              </div>
+            )}
+
+            <div className="mt-auto">
+              <a
+                href={`/api/export/cameras/${identity.cameraId}/pdf${activeShowId ? `?showId=${activeShowId}` : ''}`}
+                className="btn btn-secondary btn-sm w-full"
+              >
+                Mijn shotlist (PDF)
+              </a>
+            </div>
+          </aside>
+        </main>
+      </div>
     </div>
   );
 }
@@ -504,19 +463,25 @@ function ClaimScreen({
   toast: string | null;
 }) {
   return (
-    <div className="min-h-screen bg-base-950 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-black flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <span className="inline-grid place-items-center w-16 h-16 rounded-2xl bg-accent-500 text-white text-3xl font-bold mb-4">
+          <span
+            className="inline-grid place-items-center w-16 h-16 rounded-2xl text-3xl font-bold mb-4"
+            style={{ backgroundColor: '#e03131', color: '#ffffff' }}
+          >
             F
           </span>
-          <h1 className="text-2xl font-semibold">FEY Camera Operator</h1>
-          <p className="text-sm text-base-400 mt-1">
+          <h1 className="text-2xl font-semibold text-white">FEY Camera Operator</h1>
+          <p className="text-sm text-[#7a8794] mt-1">
             {show ? show.name : 'Koppel je aan je camera om opdrachten te ontvangen'}
           </p>
         </div>
 
-        <div className="panel p-6">
+        <div
+          className="rounded-xl p-6"
+          style={{ border: '2px solid #1b2430', backgroundColor: '#0b0e13' }}
+        >
           <Field label="Toegangscode" hint="De code staat op je camera of bij de regie.">
             <input
               className="input text-center text-3xl font-mono uppercase tracking-[0.3em] h-16"
@@ -548,7 +513,7 @@ function ClaimScreen({
           <p
             className={clsx(
               'text-xs text-center mt-4 flex items-center justify-center gap-1.5',
-              connected ? 'text-go-400' : 'text-live-400',
+              connected ? 'text-go-700' : 'text-live-500',
             )}
           >
             {connected ? <Wifi size={13} /> : <WifiOff size={13} />}

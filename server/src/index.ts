@@ -105,11 +105,32 @@ function listen(port: number): Promise<void> {
 }
 
 async function start(): Promise<void> {
-  try {
-    await listen(PORT);
-  } catch (error) {
-    console.error(`[fey] ${(error as Error).message}. Gebruik FEY_PORT om een andere poort te kiezen.`);
-    process.exit(1);
+  /*
+    The port can be taken for a moment, for example when a production server
+    is stopped while the dev server is already running. Instead of exiting for
+    good, the server waits and tries again, so `tsx watch` does not have to be
+    restarted by hand.
+  */
+  const maxAttempts = 30;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await listen(PORT);
+      break;
+    } catch (error) {
+      const message = (error as Error).message;
+      if (!message.includes('al in gebruik')) {
+        console.error(`[fey] ${message}`);
+        process.exit(1);
+      }
+      console.error(
+        `[fey] Poort ${PORT} is al in gebruik — poging ${attempt}/${maxAttempts} over ${(attempt * 2) / 1}s...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
+      if (attempt === maxAttempts) {
+        console.error(`[fey] Poort ${PORT} blijft in gebruik. Gebruik FEY_PORT om een andere poort te kiezen.`);
+        process.exit(1);
+      }
+    }
   }
 
   for (const extraPort of EXTRA_PORTS) {

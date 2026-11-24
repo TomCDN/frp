@@ -3,15 +3,16 @@ import { toCamera, toCrew, type CameraRow, type CrewRow } from '../db/mappers';
 import { newAccessCode, newId } from '../utils/id';
 import type { Camera, CrewMember } from '../types';
 
+/** The camera colours, from the palette of the Camerahandboek. */
 const CAMERA_COLORS = [
-  '#3b82f6',
-  '#ef4444',
-  '#22c55e',
-  '#eab308',
-  '#a855f7',
-  '#06b6d4',
-  '#f97316',
-  '#ec4899',
+  '#4c8dff',
+  '#e03131',
+  '#2f9e44',
+  '#b06d12',
+  '#b2453c',
+  '#31435c',
+  '#d9761a',
+  '#7a8794',
 ];
 
 export function listCameras(): Camera[] {

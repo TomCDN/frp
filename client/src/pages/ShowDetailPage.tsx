@@ -251,7 +251,7 @@ export function ShowDetailPage() {
               {stage.data ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm">
-                    <Layers size={15} className="text-accent-300" />
+                    <Layers size={15} className="text-accent-700" />
                     <span className="font-medium">{stage.data.name}</span>
                   </div>
                   <p className="text-xs text-base-400">
@@ -499,7 +499,7 @@ function SceneRow({
           }
         }}
       >
-        <Trash2 size={14} className="text-live-400" />
+        <Trash2 size={14} className="text-live-500" />
       </Button>
     </li>
   );

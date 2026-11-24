@@ -81,8 +81,9 @@ export function useSocket(options: UseSocketOptions): UseSocketResult {
     if (!options.showId) return;
     emitOperatorJoin({
       showId: options.showId,
-      crewId: options.crewId ?? '',
-      cameraId: options.cameraId ?? '',
+      // The director has no crew id; it only watches the show room.
+      crewId: options.crewId || undefined,
+      cameraId: options.cameraId || undefined,
       deviceName: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
     });
   }, [options.showId, options.crewId, options.cameraId]);

@@ -36,18 +36,26 @@ class SocketHub {
   }
 
   private handleConnection(socket: Socket): void {
-    socket.on('operator:join', (payload: { showId: string; crewId: string; cameraId: string; deviceName?: string }) => {
-      if (!payload?.showId || !payload?.crewId) return;
+    socket.on('operator:join', (payload: { showId: string; crewId?: string; cameraId?: string; deviceName?: string }) => {
+      if (!payload?.showId) return;
       socket.join(`show:${payload.showId}`);
-      socket.join(`device:${payload.crewId}`);
       socket.data.showId = payload.showId;
+
+      /*
+        The director watches a show without being a camera operator, so the
+        crew id is optional. Only a device with a crew id counts as an
+        operator and is tracked as such.
+      */
+      if (!payload.crewId) return;
+
+      socket.join(`device:${payload.crewId}`);
       socket.data.crewId = payload.crewId;
-      socket.data.cameraId = payload.cameraId;
+      socket.data.cameraId = payload.cameraId ?? '';
 
       const existing = this.operators.get(payload.crewId);
       this.operators.set(payload.crewId, {
         crewId: payload.crewId,
-        cameraId: payload.cameraId,
+        cameraId: payload.cameraId ?? '',
         connected: true,
         lastSeen: new Date().toISOString(),
         receivedCueId: existing?.receivedCueId ?? null,

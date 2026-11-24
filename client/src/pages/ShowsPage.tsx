@@ -232,7 +232,7 @@ export function ShowsPage() {
             >
               <div className="flex items-start justify-between gap-3">
                 <Link to={`/shows/${show.id}`} className="min-w-0 flex-1">
-                  <h3 className="font-semibold truncate hover:text-accent-300">{show.name}</h3>
+                  <h3 className="font-semibold truncate hover:text-accent-700">{show.name}</h3>
                   <p className="text-xs text-base-400 mt-1 line-clamp-2 min-h-[2rem]">
                     {show.description || 'Geen beschrijving'}
                   </p>
@@ -300,7 +300,7 @@ export function ShowsPage() {
                   <FileText size={14} />
                 </Button>
                 <Button size="sm" variant="ghost" title="Verwijder" onClick={() => setDeleting(show)}>
-                  <Trash2 size={14} className="text-live-400" />
+                  <Trash2 size={14} className="text-live-500" />
                 </Button>
                 <Link to={`/live/${show.id}`} className="btn btn-secondary btn-sm" title="Live regie">
                   <Radio size={14} />

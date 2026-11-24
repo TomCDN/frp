@@ -81,7 +81,7 @@ export function MessagesPanel({ showId }: { showId: string }) {
               className={clsx(
                 'rounded-lg px-3 py-2 text-sm',
                 message.kind === 'emergency'
-                  ? 'bg-live-500/15 border border-live-500/40 text-live-400'
+                  ? 'bg-live-500/15 border border-live-500/40 text-live-500'
                   : message.toCrewId
                     ? 'bg-accent-500/10 border border-accent-500/30'
                     : 'bg-base-800',

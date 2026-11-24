@@ -14,6 +14,7 @@ import {
   updateCrew,
 } from '../services/crewService';
 import { asyncHandler, badRequest, notFound, optionalNumber, optionalString, requireId } from '../utils/http';
+import { findShowForCamera } from '../services/showService';
 
 export const crewRouter = Router();
 export const camerasRouter = Router();
@@ -146,7 +147,8 @@ camerasRouter.delete(
 
 /**
  * Claims a camera using the short access code typed on the iPad.
- * Returns the camera plus the crew member assigned to it.
+ * Returns the camera, the crew member assigned to it and the show the camera
+ * is working on, so the operator screen knows what to subscribe to.
  */
 camerasRouter.post(
   '/claim',
@@ -157,6 +159,7 @@ camerasRouter.post(
     const camera = findCameraByAccessCode(code);
     if (!camera) throw notFound('Onbekende toegangscode');
     const crew = findCrewByCamera(camera.id);
-    res.json({ camera, crew: crew ?? null });
+    const show = findShowForCamera(camera.id);
+    res.json({ camera, crew: crew ?? null, show: show ?? null });
   }),
 );

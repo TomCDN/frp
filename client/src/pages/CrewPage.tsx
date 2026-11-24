@@ -212,7 +212,7 @@ export function CrewPage() {
                       title="Verwijder"
                       onClick={() => setDeletingCrew(member)}
                     >
-                      <Trash2 size={14} className="text-live-400" />
+                      <Trash2 size={14} className="text-live-500" />
                     </Button>
                   </li>
                 );
@@ -275,7 +275,7 @@ export function CrewPage() {
                         title="Verwijder"
                         onClick={() => setDeletingCamera(camera)}
                       >
-                        <Trash2 size={14} className="text-live-400" />
+                        <Trash2 size={14} className="text-live-500" />
                       </Button>
                     </div>
                     <div className="flex items-center gap-3 mt-2 text-xs text-base-400">

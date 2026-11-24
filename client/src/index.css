@@ -2,45 +2,99 @@
 
 /*
   FEY design tokens.
-  Graphite dark theme with a single amber/blue accent pair, tuned for
-  broadcast-style production software.
+
+  The visual language is taken from the "Camerahandboek" (the handbook the
+  camera operators get): a printed page with dark ink, red headings and a
+  limited palette, plus the black operator tablet with a thick coloured
+  border.
+
+  Handbook palette:
+    ink        #1b2430   body text
+    muted      #5c6b7a   secondary text
+    red        #e03131   brand, headings, "live"
+    green      #2f9e44   "straks live" / ready
+    grey       #7a8794   stand-by
+    cream      #f2e8d5   stage floor
+    navy       #31435c   camera bar
+    maroon     #b2453c   proscenium / coulisses
+    zone blue  #4c8dff   stage zones and selection
 */
 @theme {
-  --color-base-950: #070a10;
-  --color-base-900: #0b0f16;
-  --color-base-850: #0f141d;
-  --color-base-800: #131924;
-  --color-base-750: #182030;
-  --color-base-700: #1e2736;
-  --color-base-600: #2a3446;
-  --color-base-500: #3b4759;
-  --color-base-400: #5a6779;
-  --color-base-300: #8593a8;
-  --color-base-200: #b6c0cf;
-  --color-base-100: #e4e9f0;
+  /*
+    The `base` ramp is the paper-and-ink ramp. It is inverted compared to a
+    dark theme: the high numbers are the lightest (the page), the low numbers
+    are the darkest (the ink). Every `base-*` class keeps the same meaning as
+    before, only the colours changed.
+  */
+  --color-base-950: #eef1f5;
+  --color-base-900: #ffffff;
+  --color-base-850: #ffffff;
+  --color-base-800: #f7f9fb;
+  --color-base-750: #eef2f6;
+  --color-base-700: #dde4ec;
+  --color-base-600: #c3cfdb;
+  --color-base-500: #8794a4;
+  --color-base-400: #5c6b7a;
+  --color-base-300: #414f60;
+  --color-base-200: #2c3846;
+  --color-base-100: #1b2430;
 
-  --color-accent-600: #1d4ed8;
-  --color-accent-500: #2563eb;
-  --color-accent-400: #3b82f6;
-  --color-accent-300: #60a5fa;
+  /* Brand red: headings, the logo and the "live" state. */
+  --color-brand-700: #a01f1f;
+  --color-brand-600: #c12727;
+  --color-brand-500: #e03131;
+  --color-brand-400: #e54a4a;
+  --color-brand-300: #eb6a6a;
+  --color-brand-200: #f3a3a3;
 
-  --color-signal-500: #f59e0b;
-  --color-signal-400: #fbbf24;
-  --color-signal-300: #fcd34d;
+  /* Interactive blue: selection, focus and primary actions. */
+  --color-accent-700: #17457f;
+  --color-accent-600: #1f5cb8;
+  --color-accent-500: #2f6fd0;
+  --color-accent-400: #4c8dff;
+  --color-accent-300: #7fb0ff;
+  --color-accent-200: #b9d3ff;
 
-  --color-live-500: #ef4444;
-  --color-live-400: #f87171;
+  /* Notes and warnings. */
+  --color-signal-700: #6b4206;
+  --color-signal-600: #8f5808;
+  --color-signal-500: #b06d12;
+  --color-signal-400: #d18a1f;
+  --color-signal-300: #e8b054;
+  --color-signal-200: #f5d9a8;
 
-  --color-go-500: #22c55e;
-  --color-go-400: #4ade80;
+  /* "Live": the operator is on air. */
+  --color-live-600: #c12727;
+  --color-live-500: #e03131;
+  --color-live-400: #e54a4a;
 
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* "Straks live": the shot is being prepared. */
+  --color-go-700: #1d662d;
+  --color-go-600: #26803a;
+  --color-go-500: #2f9e44;
+  --color-go-400: #4cb45e;
+
+  /* "Stand-by": nothing to do yet. */
+  --color-standby-700: #4f5a65;
+  --color-standby-600: #66727e;
+  --color-standby-500: #7a8794;
+  --color-standby-400: #97a2ae;
+
+  /* The stage itself. */
+  --color-stage-cream: #f2e8d5;
+  --color-stage-cream-dark: #d8c9a8;
+  --color-stage-navy: #31435c;
+  --color-stage-maroon: #b2453c;
+  --color-stage-zone: #4c8dff;
+
+  --font-sans: 'Inter', 'Helvetica Neue', Helvetica, Arial, ui-sans-serif, system-ui,
+    -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace;
 }
 
 @layer base {
   :root {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   html,
@@ -121,10 +175,10 @@
 
   .panel-title {
     font-size: 0.8125rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--color-base-300);
+    color: var(--color-brand-500);
   }
 
   /* ---------------- Form controls ---------------- */
@@ -161,8 +215,8 @@
   }
 
   .input:focus {
-    border-color: var(--color-accent-400);
-    background-color: var(--color-base-850);
+    border-color: var(--color-accent-500);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent-500) 20%, transparent);
     outline: none;
   }
 
@@ -173,7 +227,7 @@
 
   select.input {
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238593a8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235c6b7a' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.5rem center;
     background-size: 1rem;
@@ -219,7 +273,7 @@
   }
 
   .btn-primary:hover:not(:disabled) {
-    background-color: var(--color-accent-400);
+    background-color: var(--color-accent-600);
   }
 
   .btn-secondary {
@@ -282,26 +336,26 @@
   }
 
   .badge-accent {
-    background-color: color-mix(in srgb, var(--color-accent-500) 18%, transparent);
-    color: var(--color-accent-300);
+    background-color: color-mix(in srgb, var(--color-accent-500) 14%, transparent);
+    color: var(--color-accent-600);
     border-color: color-mix(in srgb, var(--color-accent-500) 40%, transparent);
   }
 
   .badge-live {
-    background-color: color-mix(in srgb, var(--color-live-500) 18%, transparent);
-    color: var(--color-live-400);
+    background-color: color-mix(in srgb, var(--color-live-500) 14%, transparent);
+    color: var(--color-live-500);
     border-color: color-mix(in srgb, var(--color-live-500) 45%, transparent);
   }
 
   .badge-go {
-    background-color: color-mix(in srgb, var(--color-go-500) 16%, transparent);
-    color: var(--color-go-400);
+    background-color: color-mix(in srgb, var(--color-go-500) 14%, transparent);
+    color: var(--color-go-600);
     border-color: color-mix(in srgb, var(--color-go-500) 40%, transparent);
   }
 
   .badge-signal {
-    background-color: color-mix(in srgb, var(--color-signal-500) 16%, transparent);
-    color: var(--color-signal-300);
+    background-color: color-mix(in srgb, var(--color-signal-500) 14%, transparent);
+    color: var(--color-signal-600);
     border-color: color-mix(in srgb, var(--color-signal-500) 40%, transparent);
   }
 
@@ -322,6 +376,15 @@
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--color-base-400);
+  }
+
+  /* Page heading, in the style of the handbook: dark ink, tight and bold. */
+  .doc-heading {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+    color: var(--color-base-100);
   }
 
   /* Live "on air" indicator with a soft pulse. */
@@ -355,15 +418,15 @@
     }
   }
 
-  /* Operator screen status colours */
+  /* Operator screen status colours: the border of the tablet screen. */
   .status-active {
-    border-color: var(--color-go-500);
-    background-color: color-mix(in srgb, var(--color-go-500) 8%, transparent);
+    border-color: var(--color-live-500);
+    background-color: color-mix(in srgb, var(--color-live-500) 6%, transparent);
   }
 
   .status-next {
-    border-color: var(--color-signal-500);
-    background-color: color-mix(in srgb, var(--color-signal-500) 8%, transparent);
+    border-color: var(--color-go-500);
+    background-color: color-mix(in srgb, var(--color-go-500) 8%, transparent);
   }
 
   .status-warning {
@@ -372,8 +435,8 @@
   }
 
   .status-idle {
-    border-color: var(--color-base-600);
-    background-color: var(--color-base-850);
+    border-color: var(--color-standby-500);
+    background-color: var(--color-base-750);
   }
 }
 

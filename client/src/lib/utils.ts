@@ -114,3 +114,16 @@ export const STANDARD_SHOTS = [
   'Static shot',
   'Two-shot',
 ];
+
+/** Standard camera movements offered in the cue editor. */
+export const MOVEMENTS = [
+  'Statisch',
+  'Pan',
+  'Tilt',
+  'Slow push in',
+  'Pull out',
+  'Dolly',
+  'Cirkelbeweging',
+  'Handheld',
+  'Volgbeweging',
+];

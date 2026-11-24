@@ -7,13 +7,46 @@ import type { Camera, Cue, Scene, Show } from '../types';
 
 type Doc = PDFKit.PDFDocument;
 
+/*
+  The colours of the exported PDF, taken from the "Camerahandboek": a printed
+  page with dark ink, muted grey text and red headings.
+*/
 const COLORS = {
-  bg: '#0f172a',
-  text: '#0f172a',
-  muted: '#64748b',
-  line: '#cbd5e1',
-  accent: '#2563eb',
+  bg: '#1b2430',
+  text: '#1b2430',
+  muted: '#5c6b7a',
+  line: '#c9d4de',
+  accent: '#e03131',
 };
+
+/** The shot codes from the "Camerahandboek". */
+const SHOT_CODES: Record<string, string> = {
+  'wide shot': 'WS',
+  'medium shot': 'MS',
+  'close-up': 'CU',
+  'two-shot': '2S',
+  publiek: 'PUB',
+  'extreme close-up': 'XCU',
+  'over-the-shoulder': 'OTS',
+  'tracking shot': 'TRK',
+  pan: 'PAN',
+  tilt: 'TIL',
+  'static shot': 'ST',
+};
+
+/** The short code of a shot, or an empty string when the shot is unknown. */
+function shotCode(name: string | null | undefined): string {
+  if (!name) return '';
+  return SHOT_CODES[name.trim().toLowerCase()] ?? '';
+}
+
+/** The shot as it is written in the export: "CU — Close-up". */
+function shotText(name: string | null | undefined): string {
+  const trimmed = (name ?? '').trim();
+  if (!trimmed) return '—';
+  const code = shotCode(trimmed);
+  return code ? `${code} — ${trimmed}` : trimmed;
+}
 
 function formatTimecode(seconds: number | null, format: Show['settings']['timecodeFormat']): string {
   if (seconds === null || seconds === undefined || Number.isNaN(seconds)) return '--:--';
@@ -45,7 +78,7 @@ function setupDocument(res: Response, filename: string): Doc {
 function drawHeader(doc: Doc, title: string, subtitle: string): void {
   doc.rect(0, 0, doc.page.width, 92).fill(COLORS.bg);
   doc.fillColor('#ffffff').fontSize(22).font('Helvetica-Bold').text(title, 45, 30, { width: doc.page.width - 90 });
-  doc.fillColor('#94a3b8').fontSize(10).font('Helvetica').text(subtitle, 45, 58, { width: doc.page.width - 90 });
+  doc.fillColor('#b6c0cf').fontSize(10).font('Helvetica').text(subtitle, 45, 58, { width: doc.page.width - 90 });
   doc.fillColor(COLORS.text);
   doc.y = 120;
 }
@@ -134,7 +167,7 @@ export function exportShowPdf(res: Response, showId: string): void {
       for (const [cameraId, assignment] of shotEntries) {
         const camera = cameraById.get(cameraId);
         const label = camera ? `Cam ${camera.number} — ${camera.name}` : `Camera ${cameraId.slice(0, 6)}`;
-        const parts = [assignment.shot, assignment.subject, assignment.movement, assignment.notes].filter(
+        const parts = [shotText(assignment.shot), assignment.subject, assignment.movement, assignment.notes].filter(
           Boolean,
         );
         doc
@@ -147,11 +180,13 @@ export function exportShowPdf(res: Response, showId: string): void {
     }
 
     if (cue.notes) {
+      // The note may already start with "Notitie:" or "Let op:"; do not repeat it.
+      const prefix = /^\s*(let op|notitie):/i.test(cue.notes) ? '' : 'Notitie: ';
       doc
         .fontSize(9)
         .font('Helvetica-Oblique')
-        .fillColor('#b45309')
-        .text(`Notitie: ${cue.notes}`, 64, doc.y, { width: doc.page.width - 109 });
+        .fillColor('#8f5808')
+        .text(`${prefix}${cue.notes}`, 64, doc.y, { width: doc.page.width - 109 });
       doc.y += 12;
     }
 
@@ -232,7 +267,7 @@ export function exportCameraPdf(res: Response, cameraId: string, showId?: string
         );
       doc.y = top + 16;
 
-      doc.fontSize(10).font('Helvetica-Bold').fillColor(COLORS.accent).text(assignment.shot || '—', 60, doc.y);
+      doc.fontSize(10).font('Helvetica-Bold').fillColor(COLORS.accent).text(shotText(assignment.shot), 60, doc.y);
       doc.y += 13;
       if (assignment.subject) {
         doc.fontSize(9).font('Helvetica').fillColor(COLORS.text).text(`Volg: ${assignment.subject}`, 60, doc.y);
@@ -247,7 +282,9 @@ export function exportCameraPdf(res: Response, cameraId: string, showId?: string
         doc.y += 12;
       }
       if (cue.notes) {
-        doc.fontSize(9).font('Helvetica-Oblique').fillColor('#b45309').text(`Let op: ${cue.notes}`, 60, doc.y);
+        // The note may already start with "Let op:"; do not repeat it.
+        const prefix = /^\s*let op:/i.test(cue.notes) ? '' : 'Let op: ';
+        doc.fontSize(9).font('Helvetica-Oblique').fillColor('#8f5808').text(`${prefix}${cue.notes}`, 60, doc.y);
         doc.y += 12;
       }
       doc.moveTo(45, doc.y + 3).lineTo(doc.page.width - 45, doc.y + 3).strokeColor(COLORS.line).lineWidth(0.5).stroke();

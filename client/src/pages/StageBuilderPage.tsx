@@ -392,7 +392,7 @@ export function StageBuilderPage() {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          {dirty ? <span className="text-xs text-signal-300">Niet opgeslagen</span> : null}
+          {dirty ? <span className="text-xs text-signal-700">Niet opgeslagen</span> : null}
           <Button size="sm" variant="secondary" onClick={() => setStageModalOpen(true)}>
             Podium
           </Button>
@@ -403,9 +403,9 @@ export function StageBuilderPage() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 grid lg:grid-cols-[220px_1fr_280px]">
+      <div className="flex-1 min-h-0 grid grid-cols-1 grid-rows-[minmax(0,1fr)] lg:grid-cols-[220px_1fr_280px] [&>*]:min-h-0">
         {/* Palette */}
-        <aside className="border-r border-base-700 bg-base-900 overflow-y-auto p-3 hidden lg:block">
+        <aside className="col-start-1 row-start-1 border-r border-base-700 bg-base-900 overflow-y-auto p-3 hidden lg:block">
           <p className="kicker mb-2">Elementen</p>
           {LAYER_ORDER.map((layer) => {
             const items = PALETTE.filter((item) => item.group === layer);
@@ -423,7 +423,7 @@ export function StageBuilderPage() {
                       onClick={() => addElement(item.type)}
                       className="flex flex-col items-center gap-1 px-1 py-2 rounded-md bg-base-800 hover:bg-base-700 text-[10px] leading-tight text-center transition-colors"
                     >
-                      <item.icon size={16} className="text-accent-300" />
+                      <item.icon size={16} className="text-accent-700" />
                       {ELEMENT_LABELS[item.type]}
                     </button>
                   ))}
@@ -434,14 +434,18 @@ export function StageBuilderPage() {
         </aside>
 
         {/* Canvas */}
-        <div ref={canvasRef} className="relative min-h-0 bg-base-950 overflow-hidden">
-          {size.width > 0 ? (
+        <div
+          ref={canvasRef}
+          className="relative col-start-1 row-start-1 min-h-0 min-w-0 bg-base-950 overflow-hidden lg:col-start-2"
+        >
+          {size.width > 0 && size.height > 0 ? (
             <StageCanvas
               stage={stage}
               elements={elements}
               scale={scale}
               width={size.width}
               height={size.height}
+              editable
               selectedId={selectedId}
               onSelect={setSelectedId}
               onChange={(id, patch) => {
@@ -459,6 +463,7 @@ export function StageBuilderPage() {
               }}
               showGrid={showGrid}
               showCameraDirections
+              showCameraViews
               stageRef={konvaRef}
             />
           ) : null}
@@ -472,7 +477,7 @@ export function StageBuilderPage() {
                 onClick={() => addElement(item.type)}
                 className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-md bg-base-800 text-[9px] whitespace-nowrap"
               >
-                <item.icon size={14} className="text-accent-300" />
+                <item.icon size={14} className="text-accent-700" />
                 {ELEMENT_LABELS[item.type]}
               </button>
             ))}
@@ -480,7 +485,7 @@ export function StageBuilderPage() {
         </div>
 
         {/* Inspector */}
-        <aside className="border-l border-base-700 bg-base-900 overflow-y-auto p-3">
+        <aside className="col-start-1 row-start-1 border-l border-base-700 bg-base-900 overflow-y-auto p-3 lg:col-start-3">
           <p className="kicker mb-2">Eigenschappen</p>
           {!selected ? (
             <EmptyState
@@ -674,7 +679,7 @@ export function StageBuilderPage() {
               </div>
 
               {selected.locked ? (
-                <p className="text-[11px] text-signal-300">Vergrendeld — kan niet worden verplaatst.</p>
+                <p className="text-[11px] text-signal-700">Vergrendeld — kan niet worden verplaatst.</p>
               ) : null}
             </div>
           )}
